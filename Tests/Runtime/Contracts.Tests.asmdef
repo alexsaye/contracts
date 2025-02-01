@@ -1,0 +1,12 @@
+{
+    "name": "Contracts.Tests",
+    "rootNamespace": "Saye.Contracts.Tests",
+    "references": [
+        "Contracts"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": []
+}
