@@ -1,59 +1,23 @@
-using System;
-using System.Collections;
 using NUnit.Framework;
-using UnityEngine;
-using UnityEngine.TestTools;
 
 namespace Saye.Contracts.Tests
 {
     public class ContractTests
     {
-        private class MockSubject
-        {
-            public bool Satisfied { get; private set; }
-
-            public event EventHandler Event;
-
-            public MockSubject(bool satisfied)
-            {
-                Satisfied = satisfied;
-            }
-
-            public void Satisfy()
-            {
-                Satisfied = true;
-                Event?.Invoke(this, EventArgs.Empty);
-            }
-
-            public void Dissatisfy()
-            {
-                Satisfied = false;
-                Event?.Invoke(this, EventArgs.Empty);
-            }
-        }
-
-        private ICondition MockCondition(MockSubject subject)
-        {
-            return Condition.When(
-                assert: () => subject.Satisfied,
-                bind: handler => subject.Event += handler,
-                unbind: handler => subject.Event -= handler);
-        }
-
         [Test]
         public void ContractPendingOnConstruction()
         {
-            var fulfillingContract = new Contract(Condition.Always, Condition.Never);
+            var fulfillingContract = Contract.Observe(Condition.Always, Condition.Never);
             Assert.AreEqual(ContractStatus.Pending, fulfillingContract.Status);
 
-            var violatingContract = new Contract(Condition.Never, Condition.Always);
+            var violatingContract = Contract.Observe(Condition.Never, Condition.Always);
             Assert.AreEqual(ContractStatus.Pending, violatingContract.Status);
         }
 
         [Test]
         public void ContractPendingOnBind()
         {
-            var neverendingContract = new Contract(Condition.Never, Condition.Never);
+            var neverendingContract = Contract.Observe(Condition.Never, Condition.Never);
             neverendingContract.Bind();
             Assert.AreEqual(ContractStatus.Pending, neverendingContract.Status, "Neverending contract should remain pending when bound.");
             neverendingContract.Unbind();
@@ -65,7 +29,7 @@ namespace Saye.Contracts.Tests
         [Test]
         public void ContractFulfilledOnBind()
         {
-            var fulfillingContract = new Contract(Condition.Always, Condition.Never);
+            var fulfillingContract = Contract.Observe(Condition.Always, Condition.Never);
             fulfillingContract.Bind();
             Assert.AreEqual(ContractStatus.Fulfilled, fulfillingContract.Status, "Fulfilling contract should be fulfilled when bound.");
             fulfillingContract.Unbind();
@@ -76,7 +40,7 @@ namespace Saye.Contracts.Tests
 
         [Test]
         public void ContractBreachedOnBind() {
-            var breachingContract = new Contract(Condition.Never, Condition.Always);
+            var breachingContract = Contract.Observe(Condition.Never, Condition.Always);
             breachingContract.Bind();
             Assert.AreEqual(ContractStatus.Breached, breachingContract.Status, "Breaching contract should be breached when bound.");
             breachingContract.Unbind();
@@ -89,19 +53,19 @@ namespace Saye.Contracts.Tests
         public void ContractFulfilledOrBreachedOnBoundCondition()
         {
             var subject = new MockSubject(false);
-            var condition = MockCondition(subject);
+            var condition = subject.AsCondition();
 
-            var unboundFulfillingContract = new Contract(condition, Condition.Never);
+            var unboundFulfillingContract = Contract.Observe(condition, Condition.Never);
             unboundFulfillingContract.Bind();
             unboundFulfillingContract.Unbind();
-            var unboundBreachingContract = new Contract(Condition.Never, condition);
+            var unboundBreachingContract = Contract.Observe(Condition.Never, condition);
             unboundBreachingContract.Bind();
             unboundBreachingContract.Unbind();
 
-            var boundFulfillingContract = new Contract(condition, Condition.Never);
+            var boundFulfillingContract = Contract.Observe(condition, Condition.Never);
             boundFulfillingContract.Bind();
 
-            var boundBreachingContract = new Contract(Condition.Never, condition);
+            var boundBreachingContract = Contract.Observe(Condition.Never, condition);
             boundBreachingContract.Bind();
 
             Assert.AreEqual(ContractStatus.Pending, unboundFulfillingContract.Status, "Unbound fulfilling contract should be pending when condition is unsatisfied.");

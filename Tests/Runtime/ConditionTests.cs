@@ -1,42 +1,9 @@
-using System;
 using NUnit.Framework;
 
 namespace Saye.Contracts.Tests
 {
     public class ConditionTests
     {
-        private class MockSubject
-        {
-            public bool Satisfied { get; private set; }
-
-            public event EventHandler Event;
-
-            public MockSubject(bool satisfied)
-            {
-                Satisfied = satisfied;
-            }
-
-            public void Satisfy()
-            {
-                Satisfied = true;
-                Event?.Invoke(this, EventArgs.Empty);
-            }
-
-            public void Dissatisfy()
-            {
-                Satisfied = false;
-                Event?.Invoke(this, EventArgs.Empty);
-            }
-        }
-
-        private ICondition MockCondition(MockSubject subject)
-        {
-            return Condition.When(
-                assert: () => subject.Satisfied,
-                bind: handler => subject.Event += handler,
-                unbind: handler => subject.Event -= handler);
-        }
-
         [Test]
         public void ConditionSatisfiedOnConstruction()
         {
@@ -55,17 +22,17 @@ namespace Saye.Contracts.Tests
         public void ConditionSatisfiedOnAssert()
         {
             var subject = new MockSubject(false);
-            var condition = MockCondition(subject);
+            var condition = subject.AsCondition();
             Assert.IsFalse(condition.Satisfied, "Condition should be dissatisfied on construction.");
 
             var emissions = 0;
             var satisfied = false;
-            condition.OnSatisfied += (sender, args) =>
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) =>
             {
                 satisfied = true;
                 ++emissions;
             };
-            condition.OnDissatisfied += (sender, args) =>
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) =>
             {
                 satisfied = false;
                 ++emissions;
@@ -84,17 +51,17 @@ namespace Saye.Contracts.Tests
         public void ConditionDissatisfiedOnAssert()
         {
             var subject = new MockSubject(true);
-            var condition = MockCondition(subject);
+            var condition = subject.AsCondition();
             Assert.IsTrue(condition.Satisfied, "Condition should be satisfied on construction.");
 
             var emissions = 0;
             var satisfied = true;
-            condition.OnSatisfied += (sender, args) =>
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) =>
             {
                 satisfied = true;
                 ++emissions;
             };
-            condition.OnDissatisfied += (sender, args) =>
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) =>
             {
                 satisfied = false;
                 ++emissions;
@@ -116,8 +83,8 @@ namespace Saye.Contracts.Tests
             var condition = Condition.Always;
 
             var satisfied = false;
-            condition.OnSatisfied += (sender, args) => satisfied = true;
-            condition.OnDissatisfied += (sender, args) => satisfied = false;
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = true;
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = false;
 
             condition.Bind();
             Assert.IsTrue(satisfied, "Condition should be satisfied on bind.");
@@ -132,8 +99,8 @@ namespace Saye.Contracts.Tests
             var condition = Condition.Never;
 
             var satisfied = true;
-            condition.OnSatisfied += (sender, args) => satisfied = true;
-            condition.OnDissatisfied += (sender, args) => satisfied = false;
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = true;
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = false;
 
             condition.Bind();
             Assert.IsFalse(satisfied, "Condition should be dissatisfied on bind.");
@@ -146,11 +113,11 @@ namespace Saye.Contracts.Tests
         public void ConditionSatisfiedOnEvent()
         {
             var subject = new MockSubject(false);
-            var condition = MockCondition(subject);
+            var condition = subject.AsCondition();
 
             var satisfied = true;
-            condition.OnSatisfied += (sender, args) => satisfied = true;
-            condition.OnDissatisfied += (sender, args) => satisfied = false;
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = true;
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = false;
 
             condition.Bind();
             Assert.IsFalse(satisfied, "Condition should be dissatisfied on bind.");
@@ -185,11 +152,11 @@ namespace Saye.Contracts.Tests
         {
             var a = new MockSubject(false);
             var b = new MockSubject(false);
-            var condition = Condition.All(MockCondition(a), MockCondition(b));
+            var condition = Condition.All(a.AsCondition(), b.AsCondition());
 
             var satisfied = true;
-            condition.OnSatisfied += (sender, args) => satisfied = true;
-            condition.OnDissatisfied += (sender, args) => satisfied = false;
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = true;
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = false;
 
             condition.Bind();
             Assert.IsFalse(satisfied, "Condition should be dissatisfied on bind.");
@@ -215,11 +182,11 @@ namespace Saye.Contracts.Tests
         {
             var a = new MockSubject(false);
             var b = new MockSubject(false);
-            var condition = Condition.Any(MockCondition(a), MockCondition(b));
+            var condition = Condition.Any(a.AsCondition(), b.AsCondition());
 
             var satisfied = true;
-            condition.OnSatisfied += (sender, args) => satisfied = true;
-            condition.OnDissatisfied += (sender, args) => satisfied = false;
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = true;
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) => satisfied = false;
 
             condition.Bind();
             Assert.IsFalse(satisfied, "Condition should be dissatisfied on bind.");
@@ -241,12 +208,12 @@ namespace Saye.Contracts.Tests
         public void ConditionInvokesEvents()
         {
             var subject = new MockSubject(false);
-            var condition = MockCondition(subject);
+            var condition = subject.AsCondition();
 
             var satisfactions = 0;
             var dissatisfactions = 0;
-            condition.OnSatisfied += (sender, args) => ++satisfactions;
-            condition.OnDissatisfied += (sender, args) => ++dissatisfactions;
+            condition.OnSatisfied += (object sender, ConditionStatusEventArgs e) => ++satisfactions;
+            condition.OnDissatisfied += (object sender, ConditionStatusEventArgs e) => ++dissatisfactions;
 
             condition.Bind();
             Assert.AreEqual(1, dissatisfactions, "Bind communicates initially dissatisfied.");

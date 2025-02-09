@@ -7,135 +7,157 @@ namespace Saye.Contracts
     /// <summary>
     /// A condition that is satisfied or dissatisfied when asserted.
     /// </summary>
-    public class Condition : ICondition
+    public class Condition : ICondition, IDisposable
     {
-        public static Condition When(Func<bool> assert, Action<EventHandler> bind, Action<EventHandler> unbind)
+        /// <summary>
+        /// Create a condition based on a given assertion, with explicitly managed binding.
+        /// </summary>
+        /// <returns></returns>
+        public static ICondition When(Func<bool> assert, Action<ICondition> bind, Action<ICondition> unbind)
         {
             return new Condition(assert, bind, unbind);
         }
 
-        public static Condition When(Func<bool> assert)
+        /// <summary>
+        /// Create a condition based on a given assertion, with no binding (requires manual assertion).
+        /// </summary>
+        public static ICondition When(Func<bool> assert)
         {
             return When(assert, Unbound, Unbound);
         }
 
-        private static void Unbound(EventHandler handler) { }
-
-        public static Condition Any(IEnumerable<ICondition> conditions)
+        /// <summary>
+        /// Create a composite condition based on subconditions, which is satisfied when any are satisfied and dissatisfied when all are dissatisfied.
+        /// </summary>
+        public static ICondition Any(IEnumerable<ICondition> subconditions)
         {
-            return Combine(() => conditions.Any(condition => condition.Satisfied), conditions);
+            return Composite(() => subconditions.Any(subcondition => subcondition.Satisfied), subconditions);
         }
 
-        public static Condition Any(params ICondition[] conditions)
+        /// <summary>
+        /// Create a composite condition based on subconditions, which is satisfied when any are satisfied and dissatisfied when all are dissatisfied.
+        /// </summary>
+        public static ICondition Any(params ICondition[] subconditions)
         {
-            return Any((IEnumerable<ICondition>)conditions);
+            return Any((IEnumerable<ICondition>)subconditions);
         }
 
-        public static Condition All(IEnumerable<ICondition> conditions)
+        /// <summary>
+        /// Create a composite condition based on subconditions, which is satisfied when all are satisfied and dissatisfied when any are dissatisfied.
+        /// </summary>
+        public static ICondition All(IEnumerable<ICondition> subconditions)
         {
-            return Combine(() => conditions.All(condition => condition.Satisfied), conditions);
+            return Composite(() => subconditions.All(subcondition => subcondition.Satisfied), subconditions);
         }
 
-        public static Condition All(params ICondition[] conditions)
+        /// <summary>
+        /// Create a composite condition based on subconditions, which is satisfied when all are satisfied and dissatisfied when any are dissatisfied.
+        /// </summary>
+        public static ICondition All(params ICondition[] subconditions)
         {
-            return All((IEnumerable<ICondition>)conditions);
+            return All((IEnumerable<ICondition>)subconditions);
         }
 
-        private static Condition Combine(Func<bool> assert, IEnumerable<ICondition> conditions)
+        /// <summary>
+        /// Create a composite condition based on subconditions.
+        /// </summary>
+        public static ICondition Composite(Func<bool> assert, IEnumerable<ICondition> subconditions)
         {
             return new Condition(
                 assert,
-                (handler) =>
+                bind: condition =>
                 {
-                    foreach (var condition in conditions)
+                    foreach (var subcondition in subconditions)
                     {
-                        condition.OnSatisfied += handler;
-                        condition.OnDissatisfied += handler;
+                        subcondition.OnSatisfied += condition.Assert;
+                        subcondition.OnDissatisfied += condition.Assert;
                     }
-                    foreach (var condition in conditions)
+                    foreach (var subcondition in subconditions)
                     {
-                        condition.Bind();
+                        subcondition.Bind();
                     }
                 },
-                (handler) =>
+                unbind: condition =>
                 {
-                    foreach (var condition in conditions)
+                    foreach (var subcondition in subconditions)
                     {
-                        condition.OnSatisfied -= handler;
-                        condition.OnDissatisfied -= handler;
+                        subcondition.OnSatisfied -= condition.Assert;
+                        subcondition.OnDissatisfied -= condition.Assert;
                     }
-                    foreach (var condition in conditions)
+                    foreach (var subcondition in subconditions)
                     {
-                        condition.Unbind();
+                        subcondition.Unbind();
                     }
                 }
             );
         }
 
-        public static readonly Condition Never = When(() => false);
+        /// <summary>
+        /// A condition which is never satisfied.
+        /// </summary>
+        public static readonly ICondition Never = When(() => false);
 
-        public static readonly Condition Always = When(() => true);
+        /// <summary>
+        /// A condition which is always satisfied.
+        /// </summary>
+        public static readonly ICondition Always = When(() => true);
+
+        private static void Unbound(ICondition _) { }
 
         private readonly Func<bool> assert;
-        private readonly Action<EventHandler> bind;
-        private readonly Action<EventHandler> unbind;
+        private readonly Action<ICondition> bind;
+        private readonly Action<ICondition> unbind;
 
-        public event EventHandler OnSatisfied;
-        public event EventHandler OnDissatisfied;
+        public event EventHandler<ConditionStatusEventArgs> OnSatisfied;
 
-        private bool satisfied;
-        public bool Satisfied => satisfied;
+        public event EventHandler<ConditionStatusEventArgs> OnDissatisfied;
 
-        private Condition(Func<bool> assert, Action<EventHandler> bind, Action<EventHandler> unbind)
+        public bool Satisfied { get; private set; }
+
+        private Condition(Func<bool> assert, Action<ICondition> bind, Action<ICondition> unbind)
         {
             this.assert = assert;
             this.bind = bind;
             this.unbind = unbind;
-            satisfied = assert();
+            Satisfied = assert();
         }
 
         public void Assert()
         {
-            satisfied = assert();
-            Invoke();
-        }
-
-        public void AssertChanged()
-        {
             var satisfied = assert();
-            if (this.satisfied != satisfied)
+            if (Satisfied != satisfied)
             {
-                this.satisfied = satisfied;
+                Satisfied = satisfied;
                 Invoke();
             }
         }
 
-        private void Invoke()
+        public void Assert(object sender, EventArgs e)
         {
-            if (satisfied)
-            {
-                OnSatisfied?.Invoke(this, EventArgs.Empty);
-            }
-            else
-            {
-                OnDissatisfied?.Invoke(this, EventArgs.Empty);
-            }
+            Assert();
         }
 
         public void Bind()
         {
-            bind(BoundEventHandler);
-            Assert();
+            bind(this);
+            Satisfied = assert();
+            Invoke();
         }
 
         public void Unbind()
         {
-            unbind(BoundEventHandler);
+            unbind(this);
         }
 
-        private void BoundEventHandler(object sender, EventArgs e)
+        private void Invoke()
         {
-            AssertChanged();
+            var onStatus = Satisfied ? OnSatisfied : OnDissatisfied;
+            onStatus?.Invoke(this, new ConditionStatusEventArgs(Satisfied));
+        }
+
+        public void Dispose()
+        {
+            Unbind();
         }
     }
 }
