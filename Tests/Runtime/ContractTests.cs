@@ -7,17 +7,17 @@ namespace Saye.Contracts.Tests
         [Test]
         public void ContractPendingOnConstruction()
         {
-            var fulfillingContract = Contract.Observe(Condition.Always, Condition.Never);
-            Assert.AreEqual(ContractStatus.Pending, fulfillingContract.Status);
+            var resolvingContract = new Contract(Condition.Always, Condition.Never);
+            Assert.AreEqual(ContractStatus.Pending, resolvingContract.Status);
 
-            var violatingContract = Contract.Observe(Condition.Never, Condition.Always);
-            Assert.AreEqual(ContractStatus.Pending, violatingContract.Status);
+            var rejectingContract = new Contract(Condition.Never, Condition.Always);
+            Assert.AreEqual(ContractStatus.Pending, rejectingContract.Status);
         }
 
         [Test]
         public void ContractPendingOnBind()
         {
-            var neverendingContract = Contract.Observe(Condition.Never, Condition.Never);
+            var neverendingContract = new Contract(Condition.Never, Condition.Never);
             neverendingContract.Bind();
             Assert.AreEqual(ContractStatus.Pending, neverendingContract.Status, "Neverending contract should remain pending when bound.");
             neverendingContract.Unbind();
@@ -27,63 +27,63 @@ namespace Saye.Contracts.Tests
         }
 
         [Test]
-        public void ContractFulfilledOnBind()
+        public void ContractResolvedOnBind()
         {
-            var fulfillingContract = Contract.Observe(Condition.Always, Condition.Never);
-            fulfillingContract.Bind();
-            Assert.AreEqual(ContractStatus.Fulfilled, fulfillingContract.Status, "Fulfilling contract should be fulfilled when bound.");
-            fulfillingContract.Unbind();
-            Assert.AreEqual(ContractStatus.Fulfilled, fulfillingContract.Status, "Fulfilling contract should remain fulfilled when unbound.");
-            fulfillingContract.Bind();
-            Assert.AreEqual(ContractStatus.Fulfilled, fulfillingContract.Status, "Fulfilling contract should remain fulfilled when rebound.");
+            var resolvingContract = new Contract(Condition.Always, Condition.Never);
+            resolvingContract.Bind();
+            Assert.AreEqual(ContractStatus.Resolved, resolvingContract.Status, "Resolving contract should be resolved when bound.");
+            resolvingContract.Unbind();
+            Assert.AreEqual(ContractStatus.Resolved, resolvingContract.Status, "Resolving contract should remain resolved when unbound.");
+            resolvingContract.Bind();
+            Assert.AreEqual(ContractStatus.Resolved, resolvingContract.Status, "Resolving contract should remain resolved when rebound.");
         }
 
         [Test]
-        public void ContractBreachedOnBind() {
-            var breachingContract = Contract.Observe(Condition.Never, Condition.Always);
-            breachingContract.Bind();
-            Assert.AreEqual(ContractStatus.Breached, breachingContract.Status, "Breaching contract should be breached when bound.");
-            breachingContract.Unbind();
-            Assert.AreEqual(ContractStatus.Breached, breachingContract.Status, "Breaching contract should remain breached when unbound.");
-            breachingContract.Bind();
-            Assert.AreEqual(ContractStatus.Breached, breachingContract.Status, "Breaching contract should remain breached when rebound.");
+        public void ContractRejectedOnBind() {
+            var rejectingContract = new Contract(Condition.Never, Condition.Always);
+            rejectingContract.Bind();
+            Assert.AreEqual(ContractStatus.Rejected, rejectingContract.Status, "Rejecting contract should be rejected when bound.");
+            rejectingContract.Unbind();
+            Assert.AreEqual(ContractStatus.Rejected, rejectingContract.Status, "Rejecting contract should remain rejected when unbound.");
+            rejectingContract.Bind();
+            Assert.AreEqual(ContractStatus.Rejected, rejectingContract.Status, "Rejecting contract should remain rejected when rebound.");
         }
 
         [Test]
-        public void ContractFulfilledOrBreachedOnBoundCondition()
+        public void ContractResolvedOrRejectedOnBoundCondition()
         {
             var subject = new MockSubject(false);
             var condition = subject.AsCondition();
 
-            var unboundFulfillingContract = Contract.Observe(condition, Condition.Never);
-            unboundFulfillingContract.Bind();
-            unboundFulfillingContract.Unbind();
-            var unboundBreachingContract = Contract.Observe(Condition.Never, condition);
-            unboundBreachingContract.Bind();
-            unboundBreachingContract.Unbind();
+            var unboundResolvingContract = new Contract(condition, Condition.Never);
+            unboundResolvingContract.Bind();
+            unboundResolvingContract.Unbind();
+            var unboundRejectingContract = new Contract(Condition.Never, condition);
+            unboundRejectingContract.Bind();
+            unboundRejectingContract.Unbind();
 
-            var boundFulfillingContract = Contract.Observe(condition, Condition.Never);
-            boundFulfillingContract.Bind();
+            var boundResolvingContract = new Contract(condition, Condition.Never);
+            boundResolvingContract.Bind();
 
-            var boundBreachingContract = Contract.Observe(Condition.Never, condition);
-            boundBreachingContract.Bind();
+            var boundRejectingContract = new Contract(Condition.Never, condition);
+            boundRejectingContract.Bind();
 
-            Assert.AreEqual(ContractStatus.Pending, unboundFulfillingContract.Status, "Unbound fulfilling contract should be pending when condition is unsatisfied.");
-            Assert.AreEqual(ContractStatus.Pending, unboundBreachingContract.Status, "Unbound breaching contract should be pending when condition is unsatisfied.");
-            Assert.AreEqual(ContractStatus.Pending, boundFulfillingContract.Status, "Bound fulfilling contract should remain pending when condition is unsatisfied.");
-            Assert.AreEqual(ContractStatus.Pending, boundBreachingContract.Status, "Bound breaching contract should remain pending when condition is unsatisfied.");
+            Assert.AreEqual(ContractStatus.Pending, unboundResolvingContract.Status, "Unbound resolving contract should be pending when condition is unsatisfied.");
+            Assert.AreEqual(ContractStatus.Pending, unboundRejectingContract.Status, "Unbound rejecting contract should be pending when condition is unsatisfied.");
+            Assert.AreEqual(ContractStatus.Pending, boundResolvingContract.Status, "Bound resolving contract should remain pending when condition is unsatisfied.");
+            Assert.AreEqual(ContractStatus.Pending, boundRejectingContract.Status, "Bound rejecting contract should remain pending when condition is unsatisfied.");
 
             subject.Satisfy();
-            Assert.AreEqual(ContractStatus.Pending, unboundFulfillingContract.Status, "Unbound fulfilling contract should remain pending when condition is satisfied.");
-            Assert.AreEqual(ContractStatus.Pending, unboundBreachingContract.Status, "Unbound breaching contract should remain pending when condition is satisfied.");
-            Assert.AreEqual(ContractStatus.Fulfilled, boundFulfillingContract.Status, "Bound fulfilling contract should be fulfilled when condition is satisfied.");
-            Assert.AreEqual(ContractStatus.Breached, boundBreachingContract.Status, "Bound breaching contract should be breached when condition is satisfied.");
+            Assert.AreEqual(ContractStatus.Pending, unboundResolvingContract.Status, "Unbound resolving contract should remain pending when condition is satisfied.");
+            Assert.AreEqual(ContractStatus.Pending, unboundRejectingContract.Status, "Unbound rejecting contract should remain pending when condition is satisfied.");
+            Assert.AreEqual(ContractStatus.Resolved, boundResolvingContract.Status, "Bound resolving contract should be resolved when condition is satisfied.");
+            Assert.AreEqual(ContractStatus.Rejected, boundRejectingContract.Status, "Bound rejecting contract should be rejected when condition is satisfied.");
 
             subject.Dissatisfy();
-            Assert.AreEqual(ContractStatus.Pending, unboundFulfillingContract.Status, "Unbound fulfilling contract should remain pending when condition is dissatisfied.");
-            Assert.AreEqual(ContractStatus.Pending, unboundBreachingContract.Status, "Unbound breaching contract should remain pending when condition is dissatisfied.");
-            Assert.AreEqual(ContractStatus.Fulfilled, boundFulfillingContract.Status, "Bound fulfilling contract should remain fulfilled when condition is dissatisfied.");
-            Assert.AreEqual(ContractStatus.Breached, boundBreachingContract.Status, "Bound breaching contract should remain breached when condition is dissatisfied.");
+            Assert.AreEqual(ContractStatus.Pending, unboundResolvingContract.Status, "Unbound resolving contract should remain pending when condition is dissatisfied.");
+            Assert.AreEqual(ContractStatus.Pending, unboundRejectingContract.Status, "Unbound rejecting contract should remain pending when condition is dissatisfied.");
+            Assert.AreEqual(ContractStatus.Resolved, boundResolvingContract.Status, "Bound resolving contract should remain resolved when condition is dissatisfied.");
+            Assert.AreEqual(ContractStatus.Rejected, boundRejectingContract.Status, "Bound rejecting contract should remain rejected when condition is dissatisfied.");
         }
     }
 }

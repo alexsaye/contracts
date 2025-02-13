@@ -7,7 +7,7 @@ using UnityEngine.Events;
 namespace Saye.Contracts.Scripting
 {
     /// <summary>
-    /// Issues contracts until there are no more contracts to fulfill.
+    /// Issues and observes contracts until it retires.
     /// </summary>
     public class Employer : MonoBehaviour
     {
@@ -31,14 +31,14 @@ namespace Saye.Contracts.Scripting
         public UnityEvent<IReadOnlyContract> OnIssued;
 
         /// <summary>
-        /// Raised when a contract is fulfilled.
+        /// Raised when a contract is resolved.
         /// </summary>
-        public UnityEvent<IReadOnlyContract> OnFulfilled;
+        public UnityEvent<IReadOnlyContract> OnResolved;
 
         /// <summary>
-        /// Raised when a contract is breached.
+        /// Raised when a contract is rejected.
         /// </summary>
-        public UnityEvent<IReadOnlyContract> OnBreached;
+        public UnityEvent<IReadOnlyContract> OnRejected;
 
         /// <summary>
         /// Raised when a contract is revoked.
@@ -46,16 +46,16 @@ namespace Saye.Contracts.Scripting
         public UnityEvent<IReadOnlyContract> OnRevoked;
 
         /// <summary>
+        /// Raised when there are no more contracts.
+        /// </summary>
+        public UnityEvent OnRetired;
+
+        /// <summary>
         /// Raised when the issuer updates, for updating any conditions which require per-frame assertion.
         /// </summary>
         [SerializeField]
         [HideInInspector]
         private UnityEvent OnUpdate;
-
-        /// <summary>
-        /// Raised when there are no more contracts to fulfill or breach.
-        /// </summary>
-        public UnityEvent OnRetired;
 
         private void Awake()
         {
@@ -105,32 +105,32 @@ namespace Saye.Contracts.Scripting
         private void Bind(IContract contract)
         {
             Debug.Log($"Binding contract: {contract}");
-            contract.OnFulfilled += FulfilledHandler;
-            contract.OnBreached += BreachedHandler;
+            contract.OnResolved += ResolvedHandler;
+            contract.OnRejected += RejectedHandler;
             contract.Bind();
         }
 
         private void Unbind(IContract contract)
         {
             Debug.Log($"Unbinding contract: {contract}");
-            contract.OnFulfilled -= FulfilledHandler;
-            contract.OnBreached -= BreachedHandler;
+            contract.OnResolved -= ResolvedHandler;
+            contract.OnRejected -= RejectedHandler;
             contract.Unbind();
         }
 
-        private void FulfilledHandler(object sender, EventArgs e)
+        private void ResolvedHandler(object sender, EventArgs e)
         {
             var contract = (IContract)sender;
-            var consequences = scriptedContractMapping[contract].NextOnFulfilled;
-            Debug.Log($"Handling fulfilled contract: {contract}");
+            var consequences = scriptedContractMapping[contract].NextOnResolved;
+            Debug.Log($"Handling resolved contract: {contract}");
             IssueConsequences(contract, consequences);
         }
 
-        private void BreachedHandler(object sender, EventArgs e)
+        private void RejectedHandler(object sender, EventArgs e)
         {
             var contract = (IContract)sender;
-            var consequences = scriptedContractMapping[contract].NextOnBreached;
-            Debug.Log($"Handling breached contract: {contract}");
+            var consequences = scriptedContractMapping[contract].NextOnRejected;
+            Debug.Log($"Handling rejected contract: {contract}");
             IssueConsequences(contract, consequences);
         }
 

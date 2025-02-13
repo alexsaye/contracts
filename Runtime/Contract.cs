@@ -3,42 +3,28 @@ using System;
 namespace Saye.Contracts
 {
     /// <summary>
-    /// A promise-like contract that responds to obligation and violation conditions.
+    /// A promise-like contract that is resolved or rejected based on conditions.
     /// </summary>
     public class Contract : IContract, IDisposable
     {
-        /// <summary>
-        /// Create a contract based on obligation and violation conditions.
-        /// </summary>
-        public static IContract Observe(ICondition obligation, ICondition violation)
-        {
-            return new Contract(obligation, violation);
-        }
+        private ICondition resolving;
+        public IReadOnlyCondition Resolving => resolving;
 
-        /// <summary>
-        /// Create a contract based on an obligation condition with no violation condition.
-        /// </summary>
-        public static IContract Observe(ICondition obligation)
-        {
-            return Observe(obligation, Condition.Never);
-        }
-
-        private ICondition obligation;
-        public IReadOnlyCondition Obligation => obligation;
-
-        private ICondition violation;
-        public IReadOnlyCondition Violation => violation;
+        private ICondition rejecting;
+        public IReadOnlyCondition Rejecting => rejecting;
 
         public ContractStatus Status { get; private set; } = ContractStatus.Pending;
 
-        public event EventHandler<ContractStatusEventArgs> OnFulfilled;
+        public event EventHandler<ContractStatusEventArgs> OnResolved;
 
-        public event EventHandler<ContractStatusEventArgs> OnBreached;
+        public event EventHandler<ContractStatusEventArgs> OnRejected;
 
-        private Contract(ICondition obligation, ICondition violation)
+        public Contract(ICondition resolving) : this(resolving, Condition.Never) { }
+
+        public Contract(ICondition resolving, ICondition rejecting)
         {
-            this.obligation = obligation;
-            this.violation = violation;
+            this.resolving = resolving;
+            this.rejecting = rejecting;
         }
 
         public void Bind()
@@ -48,53 +34,53 @@ namespace Saye.Contracts
                 return;
             }
 
-            obligation.Bind();
-            violation.Bind();
+            resolving.Bind();
+            rejecting.Bind();
 
-            obligation.OnSatisfied += Fulfill;
-            violation.OnSatisfied += Breach;
+            resolving.OnSatisfied += Resolve;
+            rejecting.OnSatisfied += Reject;
 
-            if (violation.Satisfied)
+            if (rejecting.Satisfied)
             {
-                Breach();
+                Reject();
             }
-            else if (obligation.Satisfied)
+            else if (resolving.Satisfied)
             {
-                Fulfill();
+                Resolve();
             }
         }
 
         public void Unbind()
         {
-            obligation.OnSatisfied -= Fulfill;
-            violation.OnSatisfied -= Breach;
+            resolving.OnSatisfied -= Resolve;
+            rejecting.OnSatisfied -= Reject;
 
-            obligation.Unbind();
-            violation.Unbind();
+            resolving.Unbind();
+            rejecting.Unbind();
         }
 
-        private void Fulfill()
+        private void Resolve()
         {
-            Status = ContractStatus.Fulfilled;
+            Status = ContractStatus.Resolved;
             Unbind();
-            OnFulfilled?.Invoke(this, new ContractStatusEventArgs(Status));
+            OnResolved?.Invoke(this, new ContractStatusEventArgs(Status));
         }
 
-        private void Fulfill(object sender, EventArgs e)
+        private void Resolve(object sender, EventArgs e)
         {
-            Fulfill();
+            Resolve();
         }
 
-        private void Breach()
+        private void Reject()
         {
-            Status = ContractStatus.Breached;
+            Status = ContractStatus.Rejected;
             Unbind();
-            OnBreached?.Invoke(this, new ContractStatusEventArgs(Status));
+            OnRejected?.Invoke(this, new ContractStatusEventArgs(Status));
         }
 
-        private void Breach(object sender, EventArgs e)
+        private void Reject(object sender, EventArgs e)
         {
-            Breach();
+            Reject();
         }
 
         public void Dispose()
