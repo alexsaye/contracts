@@ -7,17 +7,29 @@ namespace Saye.Contracts
     /// </summary>
     public class Contract : IContract, IDisposable
     {
-        private ICondition resolving;
-        public IReadOnlyCondition Resolving => resolving;
+        private event EventHandler<ContractEventArgs> onResolved;
+        public event EventHandler<ContractEventArgs> OnResolved
+        {
+            add => Subscribe(ref onResolved, value, ContractStatus.Resolved);
+            remove => Unsubscribe(ref onResolved, value);
+        }
 
-        private ICondition rejecting;
-        public IReadOnlyCondition Rejecting => rejecting;
+        private event EventHandler<ContractEventArgs> onRejected;
+        public event EventHandler<ContractEventArgs> OnRejected
+        {
+            add => Subscribe(ref onRejected, value, ContractStatus.Rejected);
+            remove => Unsubscribe(ref onRejected, value);
+        }
 
-        public ContractStatus Status { get; private set; } = ContractStatus.Pending;
+        private readonly ICondition resolving;
+        public ICondition Resolving => resolving;
 
-        public event EventHandler<ContractStatusEventArgs> OnResolved;
+        private readonly ICondition rejecting;
+        public ICondition Rejecting => rejecting;
 
-        public event EventHandler<ContractStatusEventArgs> OnRejected;
+        public ContractStatus Status { get; private set; }
+
+        public bool Reacting { get; private set; }
 
         public Contract(ICondition resolving) : this(resolving, Condition.Never) { }
 
@@ -25,67 +37,80 @@ namespace Saye.Contracts
         {
             this.resolving = resolving;
             this.rejecting = rejecting;
+            Status = rejecting.Satisfied ? ContractStatus.Rejected : resolving.Satisfied ? ContractStatus.Resolved : ContractStatus.Pending;
+            Reacting = false;
         }
 
-        public void Bind()
+        public void Subscribe(ref EventHandler<ContractEventArgs> onEvent, EventHandler<ContractEventArgs> handler, ContractStatus expected)
         {
-            if (Status != ContractStatus.Pending)
+            // The contract now has subscribers, so it needs to react to its conditions.
+            EnableReaction();
+
+            if (Status == ContractStatus.Pending)
             {
-                return;
+                // Subscribe for a future resolved/rejected status.
+                onEvent += handler;
             }
-
-            resolving.Bind();
-            rejecting.Bind();
-
-            resolving.OnSatisfied += Resolve;
-            rejecting.OnSatisfied += Reject;
-
-            if (rejecting.Satisfied)
+            else if (Status == expected)
             {
-                Reject();
-            }
-            else if (resolving.Satisfied)
-            {
-                Resolve();
+                // Immediately invoke the expected status.
+                handler(this, new ContractEventArgs(Status));
             }
         }
 
-        public void Unbind()
+        public void Unsubscribe(ref EventHandler<ContractEventArgs> onEvent, EventHandler<ContractEventArgs> handler)
         {
-            resolving.OnSatisfied -= Resolve;
-            rejecting.OnSatisfied -= Reject;
-
-            resolving.Unbind();
-            rejecting.Unbind();
-        }
-
-        private void Resolve()
-        {
-            Status = ContractStatus.Resolved;
-            Unbind();
-            OnResolved?.Invoke(this, new ContractStatusEventArgs(Status));
+            onEvent -= handler;
+            if (onResolved == null && onRejected == null)
+            {
+                // The contract no longer has subscribers, so it is unnecessary for it to react to its conditions.
+                DisableReaction();
+            }
         }
 
         private void Resolve(object sender, EventArgs e)
         {
-            Resolve();
-        }
-
-        private void Reject()
-        {
-            Status = ContractStatus.Rejected;
-            Unbind();
-            OnRejected?.Invoke(this, new ContractStatusEventArgs(Status));
+            DisableReaction();
+            if (Status == ContractStatus.Pending)
+            {
+                Status = ContractStatus.Resolved;
+                onResolved?.Invoke(this, new ContractEventArgs(Status));
+            }
         }
 
         private void Reject(object sender, EventArgs e)
         {
-            Reject();
+            DisableReaction();
+            if (Status == ContractStatus.Pending)
+            {
+                Status = ContractStatus.Rejected;
+                onRejected?.Invoke(this, new ContractEventArgs(Status));
+            }
+        }
+
+        private void EnableReaction()
+        {
+            if (!Reacting)
+            {
+                Reacting = true;
+                rejecting.OnSatisfied += Reject;
+                resolving.OnSatisfied += Resolve;
+            }
+        }
+
+        private void DisableReaction()
+        {
+            if (Reacting)
+            {
+                Reacting = false;
+                rejecting.OnSatisfied -= Reject;
+                resolving.OnSatisfied -= Resolve;
+            }
         }
 
         public void Dispose()
         {
-            Unbind();
+            DisableReaction();
         }
     }
 }

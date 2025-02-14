@@ -28,22 +28,22 @@ namespace Saye.Contracts.Scripting
         /// <summary>
         /// Raised when a contract is issued.
         /// </summary>
-        public UnityEvent<IReadOnlyContract> OnIssued;
+        public UnityEvent<IContract> OnIssued;
 
         /// <summary>
         /// Raised when a contract is resolved.
         /// </summary>
-        public UnityEvent<IReadOnlyContract> OnResolved;
+        public UnityEvent<IContract> OnResolved;
 
         /// <summary>
         /// Raised when a contract is rejected.
         /// </summary>
-        public UnityEvent<IReadOnlyContract> OnRejected;
+        public UnityEvent<IContract> OnRejected;
 
         /// <summary>
         /// Raised when a contract is revoked.
         /// </summary>
-        public UnityEvent<IReadOnlyContract> OnRevoked;
+        public UnityEvent<IContract> OnRevoked;
 
         /// <summary>
         /// Raised when there are no more contracts.
@@ -107,7 +107,6 @@ namespace Saye.Contracts.Scripting
             Debug.Log($"Binding contract: {contract}");
             contract.OnResolved += ResolvedHandler;
             contract.OnRejected += RejectedHandler;
-            contract.Bind();
         }
 
         private void Unbind(IContract contract)
@@ -115,7 +114,6 @@ namespace Saye.Contracts.Scripting
             Debug.Log($"Unbinding contract: {contract}");
             contract.OnResolved -= ResolvedHandler;
             contract.OnRejected -= RejectedHandler;
-            contract.Unbind();
         }
 
         private void ResolvedHandler(object sender, EventArgs e)
@@ -176,9 +174,9 @@ namespace Saye.Contracts.Scripting
 
     public class EmployerContractEventArgs
     {
-        public IReadOnlyContract Contract { get; }
+        public IContract Contract { get; }
 
-        public EmployerContractEventArgs(IReadOnlyContract contract)
+        public EmployerContractEventArgs(IContract contract)
         {
             Contract = contract;
         }

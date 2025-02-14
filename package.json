@@ -1,6 +1,6 @@
 {
   "name": "com.saye.contracts",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "displayName": "Contracts",
   "description": "Facilitates composition of arbitrary conditions into contracts that can be fulfilled or breached.",
   "unity": "2019.4",

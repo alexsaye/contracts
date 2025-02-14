@@ -19,14 +19,6 @@ namespace Saye.Contracts
         }
 
         /// <summary>
-        /// Create a condition based on a given assertion, with no binding (requires manual assertion).
-        /// </summary>
-        public static ICondition When(Func<bool> assert)
-        {
-            return When(assert, Unbound, Unbound);
-        }
-
-        /// <summary>
         /// Create a composite condition based on subconditions, which is satisfied when any are satisfied and dissatisfied when all are dissatisfied.
         /// </summary>
         public static ICondition Any(IEnumerable<ICondition> subconditions)
@@ -72,10 +64,6 @@ namespace Saye.Contracts
                         subcondition.OnSatisfied += condition.Assert;
                         subcondition.OnDissatisfied += condition.Assert;
                     }
-                    foreach (var subcondition in subconditions)
-                    {
-                        subcondition.Bind();
-                    }
                 },
                 unbind: condition =>
                 {
@@ -84,10 +72,6 @@ namespace Saye.Contracts
                         subcondition.OnSatisfied -= condition.Assert;
                         subcondition.OnDissatisfied -= condition.Assert;
                     }
-                    foreach (var subcondition in subconditions)
-                    {
-                        subcondition.Unbind();
-                    }
                 }
             );
         }
@@ -95,24 +79,36 @@ namespace Saye.Contracts
         /// <summary>
         /// A condition which is never satisfied.
         /// </summary>
-        public static readonly ICondition Never = When(() => false);
+        public static readonly ICondition Never = When(() => false, Unbound, Unbound);
 
         /// <summary>
         /// A condition which is always satisfied.
         /// </summary>
-        public static readonly ICondition Always = When(() => true);
+        public static readonly ICondition Always = When(() => true, Unbound, Unbound);
 
         private static void Unbound(ICondition _) { }
+
+        private event EventHandler<ConditionEventArgs> onSatisfied;
+        public event EventHandler<ConditionEventArgs> OnSatisfied
+        {
+            add => Subscribe(ref onSatisfied, value, true);
+            remove => Unsubscribe(ref onSatisfied, value);
+        }
+
+        private event EventHandler<ConditionEventArgs> onDissatisfied;
+        public event EventHandler<ConditionEventArgs> OnDissatisfied
+        {
+            add => Subscribe(ref onDissatisfied, value, false);
+            remove => Unsubscribe(ref onDissatisfied, value);
+        }
+
+        public bool Satisfied { get; private set; }
+
+        public bool Reacting { get; private set; }
 
         private readonly Func<bool> assert;
         private readonly Action<ICondition> bind;
         private readonly Action<ICondition> unbind;
-
-        public event EventHandler<ConditionStatusEventArgs> OnSatisfied;
-
-        public event EventHandler<ConditionStatusEventArgs> OnDissatisfied;
-
-        public bool Satisfied { get; private set; }
 
         private Condition(Func<bool> assert, Action<ICondition> bind, Action<ICondition> unbind)
         {
@@ -120,6 +116,54 @@ namespace Saye.Contracts
             this.bind = bind;
             this.unbind = unbind;
             Satisfied = assert();
+            Reacting = false;
+        }
+
+        private void Subscribe(ref EventHandler<ConditionEventArgs> onEvent, EventHandler<ConditionEventArgs> handler, bool expected)
+        {
+            // The condition now has a subscriber, so it needs to react to its binding.
+            EnableReaction();
+
+            // Subscribe for future assertions.
+            onEvent += handler;
+
+            if (Satisfied == expected)
+            {
+
+                // Immediately invoke the expected status.
+                handler(this, new ConditionEventArgs(Satisfied));
+            }
+        }
+
+        private void Unsubscribe(ref EventHandler<ConditionEventArgs> onEvent, EventHandler<ConditionEventArgs> handler)
+        {
+            onEvent -= handler;
+            if (onSatisfied == null && onDissatisfied == null)
+            {
+                // The condition no longer has subscribers, so it is unnecessary for it to react to its binding.
+                DisableReaction();
+            }
+        }
+
+        private void EnableReaction()
+        {
+            if (!Reacting)
+            {
+                Reacting = true;
+                bind(this);
+
+                // Assert in case satisfaction has changed since the condition was last reacting.
+                Assert();
+            }
+        }
+
+        private void DisableReaction()
+        {
+            if (Reacting)
+            {
+                Reacting = false;
+                unbind(this);
+            }
         }
 
         public void Assert()
@@ -128,7 +172,14 @@ namespace Saye.Contracts
             if (Satisfied != satisfied)
             {
                 Satisfied = satisfied;
-                Invoke();
+                if (Satisfied)
+                {
+                    onSatisfied?.Invoke(this, new ConditionEventArgs(satisfied));
+                }
+                else
+                {
+                    onDissatisfied?.Invoke(this, new ConditionEventArgs(satisfied));
+                }
             }
         }
 
@@ -137,27 +188,9 @@ namespace Saye.Contracts
             Assert();
         }
 
-        public void Bind()
-        {
-            bind(this);
-            Satisfied = assert();
-            Invoke();
-        }
-
-        public void Unbind()
-        {
-            unbind(this);
-        }
-
-        private void Invoke()
-        {
-            var onStatus = Satisfied ? OnSatisfied : OnDissatisfied;
-            onStatus?.Invoke(this, new ConditionStatusEventArgs(Satisfied));
-        }
-
         public void Dispose()
         {
-            Unbind();
+            DisableReaction();
         }
     }
 }
