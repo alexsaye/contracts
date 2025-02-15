@@ -1,5 +1,3 @@
-using System;
-
 namespace Saye.Contracts
 {
     /// <summary>
@@ -16,13 +14,15 @@ namespace Saye.Contracts
         public Contract(ICondition fulfilling) : this(fulfilling, Condition.Never) { }
 
         public Contract(ICondition fulfilling, ICondition rejecting)
+            : base(rejecting.CurrentState
+                  ? ContractState.Rejected
+                  : fulfilling.CurrentState
+                    ? ContractState.Fulfilled
+                    : ContractState.Pending)
         {
             this.fulfilling = fulfilling;
             this.rejecting = rejecting;
             Noticed += HandleNoticed;
-
-            // Determine the initial state, with rejection taking precedence.
-            CurrentState = rejecting.CurrentState ? ContractState.Rejected : fulfilling.CurrentState ? ContractState.Fulfilled : ContractState.Pending;
         }
 
         private void HandleNoticed(object sender, NoticedEventArgs e)

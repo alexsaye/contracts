@@ -10,8 +10,9 @@ namespace Saye.Contracts.Scripting
     public class Career : ICareer
     {
         private readonly HashSet<ICareerProgression> pending;
+        public IEnumerable<IContract> Pending => pending.Select(progression => progression.Contract);
 
-        public event EventHandler<CareerIssueEventArgs> Issued;
+        public event EventHandler<IssuedEventArgs> Issued;
 
         public Career()
         {
@@ -21,7 +22,7 @@ namespace Saye.Contracts.Scripting
         public void Issue(ICareerProgression progression)
         {
             pending.Add(progression);
-            Issued?.Invoke(this, new CareerIssueEventArgs(progression.Contract));
+            Issued?.Invoke(this, new IssuedEventArgs(progression.Contract));
             progression.State += IssueNext;
         }
 
@@ -47,9 +48,14 @@ namespace Saye.Contracts.Scripting
     public interface ICareer
     {
         /// <summary>
+        /// The contracts currently pending progression.
+        /// </summary>
+        public IEnumerable<IContract> Pending { get; }
+
+        /// <summary>
         /// Raised when a contract is issued.
         /// </summary>
-        event EventHandler<CareerIssueEventArgs> Issued;
+        event EventHandler<IssuedEventArgs> Issued;
 
         /// <summary>
         /// Issue a contract with a route of progression.
@@ -67,11 +73,11 @@ namespace Saye.Contracts.Scripting
     /// <summary>
     /// Raised when a contract is issued through a career.
     /// </summary>
-    public class CareerIssueEventArgs : EventArgs
+    public class IssuedEventArgs : EventArgs
     {
         public IContract Contract { get; }
 
-        public CareerIssueEventArgs(IContract contract)
+        public IssuedEventArgs(IContract contract)
         {
             Contract = contract;
         }

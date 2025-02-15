@@ -91,14 +91,12 @@ namespace Saye.Contracts
         private readonly Action<ICondition> unbind;
 
         private Condition(Func<bool> assert, Action<ICondition> bind, Action<ICondition> unbind)
+            : base(assert())
         {
             this.assert = assert;
             this.bind = bind;
             this.unbind = unbind;
             Noticed += HandleNoticed;
-
-            // Determine the initial state.
-            Update();
         }
 
         private void HandleNoticed(object sender, NoticedEventArgs e)

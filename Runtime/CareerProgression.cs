@@ -1,13 +1,12 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace Saye.Contracts
 {
     /// <summary>
     /// Routes of career progression via a contract.
     /// </summary>
-    public class CareerProgression : Notice<IEnumerable<ICareerProgression>>, ICareerProgression
+    public class CareerProgression : ReadOnlyNotice<IEnumerable<ICareerProgression>>, ICareerProgression
     {
         public IContract Contract { get; }
 
@@ -16,6 +15,12 @@ namespace Saye.Contracts
         public IEnumerable<ICareerProgression> NextOnRejected { get; }
 
         public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnFulfilled, IEnumerable<ICareerProgression> nextOnRejected)
+            : base(contract.CurrentState switch
+            {
+                ContractState.Fulfilled => nextOnFulfilled,
+                ContractState.Rejected => nextOnRejected,
+                _ => Enumerable.Empty<ICareerProgression>()
+            })
         {
             Contract = contract;
             NextOnFulfilled = nextOnFulfilled;
@@ -23,7 +28,7 @@ namespace Saye.Contracts
             Noticed += HandleNoticed;
         }
 
-        public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnFulfilled) : this(contract, nextOnFulfilled, Enumerable.Empty<ICareerProgression>()) { }
+        public CareerProgression(IContract contract, IContract nextOnFulfilled, IContract nextOnRejected) : this(contract, new[] { new CareerProgression(nextOnFulfilled) }, new[] { new CareerProgression(nextOnRejected) }) { }
 
         public CareerProgression(IContract contract) : this(contract, Enumerable.Empty<ICareerProgression>(), Enumerable.Empty<ICareerProgression>()) { }
 
@@ -56,7 +61,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Represents routes of career progression via a contract.
     /// </summary>
-    public interface ICareerProgression : INotice<IEnumerable<ICareerProgression>>
+    public interface ICareerProgression : IReadOnlyNotice<IEnumerable<ICareerProgression>>
     {
         /// <summary>
         /// The contract for this progression.

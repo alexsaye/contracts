@@ -39,6 +39,6 @@ namespace Saye.Contracts.Scripting
             return When(assert, (IEnumerable<UnityEvent>)bind);
         }
 
-        public abstract ICondition Build(UnityEvent update);
+        public abstract ICondition Build(UnityEvent updated);
     }
 }

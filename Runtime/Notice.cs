@@ -14,6 +14,10 @@ namespace Saye.Contracts
             get => base.CurrentState;
             set => base.CurrentState = value;
         }
+
+        public Notice(T initialState) : base(initialState) { }
+
+        public Notice() : base() { }
     }
 
     /// <summary>
@@ -104,7 +108,7 @@ namespace Saye.Contracts
 
         public ReadOnlyNotice(T initialState)
         {
-            CurrentState = initialState;
+            currentState = initialState;
         }
 
         public ReadOnlyNotice() : this(default) { }
