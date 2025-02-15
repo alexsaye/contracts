@@ -11,48 +11,45 @@ namespace Saye.Contracts.Tests
             var neverendingContract = new Contract(Condition.Never, Condition.Never);
 
             var invoked = false;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) => invoked = true;
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e) => invoked = true;
 
-            neverendingContract.OnResolved += statusHandler;
-            neverendingContract.OnRejected += statusHandler;
-            Assert.IsFalse(invoked, "Contract should not have emitted a resolved or rejected status.");
+            neverendingContract.State += handleState;
+            Assert.IsFalse(invoked, "Contract should not have emitted a resolved or rejected state.");
         }
 
         [Test]
-        public void ContractResolvedOnSubscribe()
+        public void ContractResolvedOnObserve()
         {
             var resolvingContract = new Contract(Condition.Always, Condition.Never);
 
-            var status = ContractStatus.Pending;
+            var state = ContractState.Pending;
             var invocations = 0;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) =>
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e)
             {
-                status = e.Status;
+                state = e.State;
                 ++invocations;
-            };
+            }
 
-            resolvingContract.OnResolved += statusHandler;
-            resolvingContract.OnRejected += statusHandler;
-            Assert.AreEqual(ContractStatus.Resolved, status, "Contract should have emitted a resolved status.");
+            resolvingContract.State += handleState;
+            Assert.AreEqual(ContractState.Fulfilled, state, "Contract should have emitted a resolved state.");
             Assert.AreEqual(1, invocations, "Contract should have only emitted once.");
         }
 
         [Test]
-        public void ContractRejectedOnSubscribe()
+        public void ContractRejectedOnObserve()
         {
             var rejectingContract = new Contract(Condition.Never, Condition.Always);
 
-            var status = ContractStatus.Pending;
+            var state = ContractState.Pending;
             var invocations = 0;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) =>
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e)
             {
-                status = e.Status;
+                state = e.State;
                 ++invocations;
-            };
+            }
 
-            rejectingContract.OnResolved += statusHandler;
-            rejectingContract.OnRejected += statusHandler;
-            Assert.AreEqual(ContractStatus.Rejected, status, "Contract should have emitted a rejected status.");
+            rejectingContract.State += handleState;
+            Assert.AreEqual(ContractState.Rejected, state, "Contract should have emitted a rejected state.");
             Assert.AreEqual(1, invocations, "Contract should have only emitted once.");
         }
 
@@ -63,23 +60,22 @@ namespace Saye.Contracts.Tests
             var condition = subject.AsCondition();
             var contract = new Contract(condition, Condition.Never);
 
-            var status = ContractStatus.Pending;
+            var state = ContractState.Pending;
             var invocations = 0;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) =>
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e)
             {
-                status = e.Status;
+                state = e.State;
                 ++invocations;
-            };
+            }
 
-            contract.OnResolved += statusHandler;
-            contract.OnRejected += statusHandler;
-            Assert.AreEqual(ContractStatus.Pending, status, "Contract should be pending on subscribe.");
+            contract.State += handleState;
+            Assert.AreEqual(ContractState.Pending, state, "Contract should be pending on subscribe.");
 
             subject.Satisfy();
-            Assert.AreEqual(ContractStatus.Resolved, status, "Contract should have emitted a resolved status.");
+            Assert.AreEqual(ContractState.Fulfilled, state, "Contract should have emitted a resolved state.");
 
             subject.Dissatisfy();
-            Assert.AreEqual(ContractStatus.Resolved, status, "Contract should remain resolved when condition is dissatisfied.");
+            Assert.AreEqual(ContractState.Fulfilled, state, "Contract should remain resolved when condition is dissatisfied.");
 
             Assert.AreEqual(1, invocations, "Contract should have only emitted once.");
         }
@@ -91,43 +87,41 @@ namespace Saye.Contracts.Tests
             var condition = subject.AsCondition();
             var contract = new Contract(Condition.Never, condition);
 
-            var status = ContractStatus.Pending;
+            var state = ContractState.Pending;
             var invocations = 0;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) =>
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e)
             {
-                status = e.Status;
+                state = e.State;
                 ++invocations;
-            };
+            }
 
-            contract.OnResolved += statusHandler;
-            contract.OnRejected += statusHandler;
-            Assert.AreEqual(ContractStatus.Pending, status, "Contract should be pending on subscribe.");
+            contract.State += handleState;
+            Assert.AreEqual(ContractState.Pending, state, "Contract should be pending on subscribe.");
 
             subject.Satisfy();
-            Assert.AreEqual(ContractStatus.Rejected, status, "Contract should have emitted a rejected status.");
+            Assert.AreEqual(ContractState.Rejected, state, "Contract should have emitted a rejected state.");
 
             subject.Dissatisfy();
-            Assert.AreEqual(ContractStatus.Rejected, status, "Contract should remain rejected when condition is satisfied.");
+            Assert.AreEqual(ContractState.Rejected, state, "Contract should remain rejected when condition is satisfied.");
 
             Assert.AreEqual(1, invocations, "Contract should have only emitted once.");
         }
 
         [Test]
-        public void ContractRejectedWhenAlsoResolvedOnSubscribe()
+        public void ContractRejectedWhenAlsoResolvedOnObserve()
         {
             var schrodingersContract = new Contract(Condition.Always, Condition.Always);
 
-            var status = ContractStatus.Pending;
+            var state = ContractState.Pending;
             var invocations = 0;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) =>
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e)
             {
-                status = e.Status;
+                state = e.State;
                 ++invocations;
-            };
+            }
 
-            schrodingersContract.OnResolved += statusHandler;
-            schrodingersContract.OnRejected += statusHandler;
-            Assert.AreEqual(ContractStatus.Rejected, status, "Contract should have emitted a rejected status.");
+            schrodingersContract.State += handleState;
+            Assert.AreEqual(ContractState.Rejected, state, "Contract should have emitted a rejected state.");
             Assert.AreEqual(1, invocations, "Contract should have only emitted once.");
         }
 
@@ -138,23 +132,22 @@ namespace Saye.Contracts.Tests
             var condition = subject.AsCondition();
             var schrodingersContract = new Contract(condition, condition);
 
-            var status = ContractStatus.Pending;
+            var state = ContractState.Pending;
             var invocations = 0;
-            EventHandler<ContractEventArgs> statusHandler = (object sender, ContractEventArgs e) =>
+            void handleState(object sender, ObservableStateEventArgs<ContractState> e)
             {
-                status = e.Status;
+                state = e.State;
                 ++invocations;
-            };
+            }
 
-            schrodingersContract.OnResolved += statusHandler;
-            schrodingersContract.OnRejected += statusHandler;
-            Assert.AreEqual(ContractStatus.Pending, status, "Contract should be pending on subscribe.");
+            schrodingersContract.State += handleState;
+            Assert.AreEqual(ContractState.Pending, state, "Contract should be pending on subscribe.");
 
             subject.Satisfy();
-            Assert.AreEqual(ContractStatus.Rejected, status, "Contract should have emitted a rejected status.");
+            Assert.AreEqual(ContractState.Rejected, state, "Contract should have emitted a rejected state.");
 
             subject.Dissatisfy();
-            Assert.AreEqual(ContractStatus.Rejected, status, "Contract should remain rejected when condition is satisfied.");
+            Assert.AreEqual(ContractState.Rejected, state, "Contract should remain rejected when condition is satisfied.");
 
             Assert.AreEqual(1, invocations, "Contract should have only emitted once.");
         }

@@ -5,9 +5,9 @@ using System.Linq;
 namespace Saye.Contracts
 {
     /// <summary>
-    /// A condition that is satisfied or dissatisfied when asserted.
+    /// A condition that can be either satisfied or dissatisfied.
     /// </summary>
-    public class Condition : ICondition, IDisposable
+    public class Condition : Observable<bool>, ICondition
     {
         /// <summary>
         /// Create a condition based on a given assertion, with explicitly managed binding.
@@ -23,7 +23,7 @@ namespace Saye.Contracts
         /// </summary>
         public static ICondition Any(IEnumerable<ICondition> subconditions)
         {
-            return Composite(() => subconditions.Any(subcondition => subcondition.Satisfied), subconditions);
+            return Composite(() => subconditions.Any(subcondition => subcondition.CurrentState), subconditions);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Saye.Contracts
         /// </summary>
         public static ICondition All(IEnumerable<ICondition> subconditions)
         {
-            return Composite(() => subconditions.All(subcondition => subcondition.Satisfied), subconditions);
+            return Composite(() => subconditions.All(subcondition => subcondition.CurrentState), subconditions);
         }
 
         /// <summary>
@@ -61,16 +61,14 @@ namespace Saye.Contracts
                 {
                     foreach (var subcondition in subconditions)
                     {
-                        subcondition.OnSatisfied += condition.Assert;
-                        subcondition.OnDissatisfied += condition.Assert;
+                        subcondition.State += condition.Update;
                     }
                 },
                 unbind: condition =>
                 {
                     foreach (var subcondition in subconditions)
                     {
-                        subcondition.OnSatisfied -= condition.Assert;
-                        subcondition.OnDissatisfied -= condition.Assert;
+                        subcondition.State -= condition.Update;
                     }
                 }
             );
@@ -88,24 +86,6 @@ namespace Saye.Contracts
 
         private static void Unbound(ICondition _) { }
 
-        private event EventHandler<ConditionEventArgs> onSatisfied;
-        public event EventHandler<ConditionEventArgs> OnSatisfied
-        {
-            add => Subscribe(ref onSatisfied, value, true);
-            remove => Unsubscribe(ref onSatisfied, value);
-        }
-
-        private event EventHandler<ConditionEventArgs> onDissatisfied;
-        public event EventHandler<ConditionEventArgs> OnDissatisfied
-        {
-            add => Subscribe(ref onDissatisfied, value, false);
-            remove => Unsubscribe(ref onDissatisfied, value);
-        }
-
-        public bool Satisfied { get; private set; }
-
-        public bool Reacting { get; private set; }
-
         private readonly Func<bool> assert;
         private readonly Action<ICondition> bind;
         private readonly Action<ICondition> unbind;
@@ -115,82 +95,53 @@ namespace Saye.Contracts
             this.assert = assert;
             this.bind = bind;
             this.unbind = unbind;
-            Satisfied = assert();
-            Reacting = false;
+            Observed += HandleObserved;
+
+            // Determine the initial state.
+            Update();
         }
 
-        private void Subscribe(ref EventHandler<ConditionEventArgs> onEvent, EventHandler<ConditionEventArgs> handler, bool expected)
+        private void HandleObserved(object sender, ObservableObservedEventArgs e)
         {
-            // The condition now has a subscriber, so it needs to react to its binding.
-            EnableReaction();
-
-            // Subscribe for future assertions.
-            onEvent += handler;
-
-            if (Satisfied == expected)
+            if (e.IsObserved)
             {
-
-                // Immediately invoke the expected status.
-                handler(this, new ConditionEventArgs(Satisfied));
-            }
-        }
-
-        private void Unsubscribe(ref EventHandler<ConditionEventArgs> onEvent, EventHandler<ConditionEventArgs> handler)
-        {
-            onEvent -= handler;
-            if (onSatisfied == null && onDissatisfied == null)
-            {
-                // The condition no longer has subscribers, so it is unnecessary for it to react to its binding.
-                DisableReaction();
-            }
-        }
-
-        private void EnableReaction()
-        {
-            if (!Reacting)
-            {
-                Reacting = true;
+                // Bind to allow automatic updates while observed.
                 bind(this);
 
-                // Assert in case satisfaction has changed since the condition was last reacting.
-                Assert();
+                // Update in case the externally asserted state has changed since the condition was last observed.
+                Update();
             }
-        }
-
-        private void DisableReaction()
-        {
-            if (Reacting)
+            else
             {
-                Reacting = false;
+                // Unbind to prevent unnecessary automatic updates while not observed.
                 unbind(this);
             }
         }
 
-        public void Assert()
+        public void Update()
         {
-            var satisfied = assert();
-            if (Satisfied != satisfied)
-            {
-                Satisfied = satisfied;
-                if (Satisfied)
-                {
-                    onSatisfied?.Invoke(this, new ConditionEventArgs(satisfied));
-                }
-                else
-                {
-                    onDissatisfied?.Invoke(this, new ConditionEventArgs(satisfied));
-                }
-            }
+            CurrentState = assert();
         }
 
-        public void Assert(object sender, EventArgs e)
+        public void Update(object sender, EventArgs e)
         {
-            Assert();
+            Update();
         }
+    }
 
-        public void Dispose()
-        {
-            DisableReaction();
-        }
+    /// <summary>
+    /// Represents a condition that can be either satisfied or dissatisfied.
+    /// </summary>
+    public interface ICondition : IObservable<bool>
+    {
+        /// <summary>
+        /// Updates the condition's state.
+        /// </summary>
+        void Update();
+
+        /// <summary>
+        /// Updates the condition's state (for use as an event handler).
+        /// </summary>
+        void Update(object sender, EventArgs e);
     }
 }

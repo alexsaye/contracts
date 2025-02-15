@@ -18,14 +18,14 @@ namespace Saye.Contracts.Scripting
                 {
                     foreach (var e in bind)
                     {
-                        e.AddListener(condition.Assert);
+                        e.AddListener(condition.Update);
                     }
                 },
                 unbind: condition =>
                 {
                     foreach (var e in bind)
                     {
-                        e.RemoveListener(condition.Assert);
+                        e.RemoveListener(condition.Update);
                     }
                 }
             );

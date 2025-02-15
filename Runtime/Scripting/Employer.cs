@@ -105,18 +105,16 @@ namespace Saye.Contracts.Scripting
         private void Bind(IContract contract)
         {
             Debug.Log($"Binding contract: {contract}");
-            contract.OnResolved += ResolvedHandler;
-            contract.OnRejected += RejectedHandler;
+            contract.State += HandleContractState;
         }
 
         private void Unbind(IContract contract)
         {
             Debug.Log($"Unbinding contract: {contract}");
-            contract.OnResolved -= ResolvedHandler;
-            contract.OnRejected -= RejectedHandler;
+            contract.State -= HandleContractState;
         }
 
-        private void ResolvedHandler(object sender, EventArgs e)
+        private void HandleContractState(object sender, EventArgs e)
         {
             var contract = (IContract)sender;
             var consequences = scriptedContractMapping[contract].NextOnResolved;

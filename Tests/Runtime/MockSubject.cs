@@ -29,8 +29,8 @@ namespace Saye.Contracts.Tests
         {
             return Condition.When(
                 assert: () => Satisfied,
-                bind: condition => Event += condition.Assert,
-                unbind: condition => Event -= condition.Assert);
+                bind: condition => Event += condition.Update,
+                unbind: condition => Event -= condition.Update);
         }
     }
 }
