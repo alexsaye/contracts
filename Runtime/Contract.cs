@@ -11,7 +11,8 @@ namespace Saye.Contracts
         private readonly ICondition rejecting;
         public ICondition Rejecting => rejecting;
 
-        public Contract(ICondition fulfilling) : this(fulfilling, Condition.Never) { }
+        public Contract(ICondition fulfilling)
+            : this(fulfilling, Condition.Never) { }
 
         public Contract(ICondition fulfilling, ICondition rejecting)
             : base(rejecting.CurrentState

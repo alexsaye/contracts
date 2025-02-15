@@ -4,15 +4,15 @@ using System.Linq;
 namespace Saye.Contracts
 {
     /// <summary>
-    /// Routes of career progression via a contract.
+    /// A route of career progression via a contract.
     /// </summary>
     public class CareerProgression : ReadOnlyWatchable<IEnumerable<ICareerProgression>>, ICareerProgression
     {
         public IContract Contract { get; }
 
-        public IEnumerable<ICareerProgression> NextOnFulfilled { get; }
+        private IEnumerable<ICareerProgression> nextOnFulfilled;
 
-        public IEnumerable<ICareerProgression> NextOnRejected { get; }
+        private IEnumerable<ICareerProgression> nextOnRejected;
 
         public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnFulfilled, IEnumerable<ICareerProgression> nextOnRejected)
             : base(contract.CurrentState switch
@@ -23,14 +23,13 @@ namespace Saye.Contracts
             })
         {
             Contract = contract;
-            NextOnFulfilled = nextOnFulfilled;
-            NextOnRejected = nextOnRejected;
+            this.nextOnFulfilled = nextOnFulfilled;
+            this.nextOnRejected = nextOnRejected;
             Watched += HandleWatched;
         }
 
-        public CareerProgression(IContract contract, IContract nextOnFulfilled, IContract nextOnRejected) : this(contract, new[] { new CareerProgression(nextOnFulfilled) }, new[] { new CareerProgression(nextOnRejected) }) { }
-
-        public CareerProgression(IContract contract) : this(contract, Enumerable.Empty<ICareerProgression>(), Enumerable.Empty<ICareerProgression>()) { }
+        public CareerProgression(IContract contract)
+            : this(contract, Enumerable.Empty<ICareerProgression>(), Enumerable.Empty<ICareerProgression>()) { }
 
         private void HandleWatched(object sender, WatchedEventArgs e)
         {
@@ -46,20 +45,20 @@ namespace Saye.Contracts
 
         private void HandleContractState(object sender, StateEventArgs<ContractState> e)
         {
-            // Update the current state if the contract is fulfilled or rejected.
+            // If the contract is no longer pending, fully enumerate the next progressions for the current state.
             if (e.CurrentState == ContractState.Fulfilled)
             {
-                CurrentState = NextOnFulfilled;
+                CurrentState = nextOnFulfilled.ToList();
             }
             else if (e.CurrentState == ContractState.Rejected)
             {
-                CurrentState = NextOnRejected;
+                CurrentState = nextOnRejected.ToList();
             }
         }
     }
 
     /// <summary>
-    /// Represents routes of career progression via a contract.
+    /// Represents a route of career progression via a contract.
     /// </summary>
     public interface ICareerProgression : IReadOnlyWatchable<IEnumerable<ICareerProgression>>
     {
@@ -67,15 +66,5 @@ namespace Saye.Contracts
         /// The contract for this progression.
         /// </summary>
         IContract Contract { get; }
-
-        /// <summary>
-        /// The next progressions when the contract is fulfilled.
-        /// </summary>
-        public IEnumerable<ICareerProgression> NextOnFulfilled { get; }
-
-        /// <summary>
-        /// The next progressions when the contract is rejected.
-        /// </summary>
-        public IEnumerable<ICareerProgression> NextOnRejected { get; }
     }
 }

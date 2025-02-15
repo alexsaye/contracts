@@ -62,6 +62,7 @@ namespace Saye.Contracts.Scripting
 
         private void ForwardIssued(object sender, IssuedEventArgs e)
         {
+            Debug.Log($"Issued contract: {e.Contract}");
             Issued.Invoke(e.Contract);
         }
     }

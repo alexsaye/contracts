@@ -33,7 +33,7 @@ namespace Saye.Contracts
             protected set
             {
                 // If the state has changed, push the state.
-                if (!currentState.Equals(value))
+                if (currentState == null && value != null || !currentState.Equals(value))
                 {
                     currentState = value;
                     state?.Invoke(this, new StateEventArgs<T>(currentState));

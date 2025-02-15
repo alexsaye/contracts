@@ -34,10 +34,10 @@ namespace Saye.Contracts.Tests
         public void ContractRejectedWhenAlsoFulfilledOnConstruction()
         {
             var schrodingersContract = new Contract(Condition.Always, Condition.Always);
+            Assert.AreEqual(ContractState.Rejected, schrodingersContract.CurrentState, "Is rejected on construction.");
 
             var state = ContractState.Pending;
             void handleState(object sender, StateEventArgs<ContractState> e) => state = e.CurrentState;
-            Assert.AreEqual(ContractState.Rejected, schrodingersContract.CurrentState, "Is rejected on construction.");
 
             schrodingersContract.State += handleState;
             Assert.AreEqual(ContractState.Rejected, state, "Is rejected on subscribe.");

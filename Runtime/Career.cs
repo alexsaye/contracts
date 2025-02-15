@@ -36,7 +36,9 @@ namespace Saye.Contracts
             var progression = (ICareerProgression)sender;
             if (progression.Contract.CurrentState != ContractState.Pending)
             {
+                // Remove the no longer pending progression and issue its next progressions.
                 pending.Remove(progression);
+                progression.State -= IssueNext;
                 foreach (var next in e.CurrentState)
                 {
                     Issue(next);

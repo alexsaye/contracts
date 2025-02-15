@@ -39,8 +39,8 @@ namespace Saye.Contracts.Tests
             var contract = new Contract(Condition.Always);
             var promotionContract = new Contract(Condition.Never);
             var demotionContract = new Contract(Condition.Never);
-            career.Issue(new CareerProgression(contract, promotionContract, demotionContract));
-            //Assert.AreEqual(2, history.Count, "Has issued two contracts.");
+            career.Issue(new CareerProgression(contract, new ICareerProgression[] { new CareerProgression(promotionContract) }, new ICareerProgression[] { new CareerProgression(demotionContract) }));
+            Assert.AreEqual(2, history.Count, "Has issued two contracts.");
             Assert.AreSame(contract, history.First(), "Has issued the given contract first.");
             Assert.AreSame(promotionContract, history.Last(), "Has issued the promotion next.");
             Assert.AreEqual(1, career.Pending.Count(), "Has one pending contract.");
@@ -58,7 +58,7 @@ namespace Saye.Contracts.Tests
             var contract = new Contract(Condition.Never, Condition.Always);
             var promotionContract = new Contract(Condition.Never);
             var demotionContract = new Contract(Condition.Never);
-            career.Issue(new CareerProgression(contract, promotionContract, demotionContract));
+            career.Issue(new CareerProgression(contract, new ICareerProgression[] { new CareerProgression(promotionContract) }, new ICareerProgression[] { new CareerProgression(demotionContract) }));
             Assert.AreEqual(2, history.Count, "Has issued two contracts.");
             Assert.AreSame(contract, history.First(), "Has issued the given contract first.");
             Assert.AreSame(demotionContract, history.Last(), "Has issued the demotion next.");

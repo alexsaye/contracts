@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -23,13 +24,16 @@ namespace Saye.Contracts.Scripting
 
         public virtual ICareerProgression Build(UnityEvent updated)
         {
-            Debug.Log($"Building contract: {this}");
+            Debug.Log($"Building contract {name}");
+
+            // Build the contract and its conditions immediately.
             var fulfilling = this.fulfilling != null ? this.fulfilling.Build(updated) : Condition.Never;
             var rejecting = this.rejecting != null ? this.rejecting.Build(updated) : Condition.Never;
             var contract = new Contract(fulfilling, rejecting);
 
-            var nextOnRejected = this.nextOnRejected.ConvertAll(nextOnRejected => nextOnRejected.Build(updated));
-            var nextOnFulfilled = this.nextOnFulfilled.ConvertAll(nextOnFulfilled => nextOnFulfilled.Build(updated));
+            // Create enumerations which defer building the next progression contracts until enumerated by the career progression.
+            var nextOnRejected = this.nextOnRejected.Select(nextOnRejected => nextOnRejected.Build(updated));
+            var nextOnFulfilled = this.nextOnFulfilled.Select(nextOnFulfilled => nextOnFulfilled.Build(updated));
             return new CareerProgression(contract, nextOnFulfilled, nextOnRejected);
         }
     }
