@@ -8,14 +8,14 @@ namespace Saye.Contracts.Scripting
     public class ScriptableContract : ScriptableObject
     {
         [SerializeField]
-        protected ScriptableCondition resolving;
+        protected ScriptableCondition fulfilling;
 
         [SerializeField]
         protected ScriptableCondition rejecting;
 
         [SerializeField]
-        protected List<ScriptableContract> nextOnResolved = new List<ScriptableContract>();
-        public IEnumerable<ScriptableContract> NextOnResolved => nextOnResolved;
+        protected List<ScriptableContract> nextOnFulfilled = new List<ScriptableContract>();
+        public IEnumerable<ScriptableContract> NextOnFulfilled => nextOnFulfilled;
 
         [SerializeField]
         protected List<ScriptableContract> nextOnRejected = new List<ScriptableContract>();
@@ -24,9 +24,9 @@ namespace Saye.Contracts.Scripting
         public virtual IContract Build(UnityEvent update)
         {
             Debug.Log($"Building contract: {this}");
-            var resolving = this.resolving != null ? this.resolving.Build(update) : Condition.Never;
+            var fulfilling = this.fulfilling != null ? this.fulfilling.Build(update) : Condition.Never;
             var rejecting = this.rejecting != null ? this.rejecting.Build(update) : Condition.Never;
-            var contract = new Contract(resolving, rejecting);
+            var contract = new Contract(fulfilling, rejecting);
             return contract;
         }
     }

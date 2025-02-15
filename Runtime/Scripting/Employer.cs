@@ -7,7 +7,7 @@ using UnityEngine.Events;
 namespace Saye.Contracts.Scripting
 {
     /// <summary>
-    /// Issues and observes contracts until it retires.
+    /// Issues and tracks career progression through contracts until it retires.
     /// </summary>
     public class Employer : MonoBehaviour
     {
@@ -31,9 +31,9 @@ namespace Saye.Contracts.Scripting
         public UnityEvent<IContract> OnIssued;
 
         /// <summary>
-        /// Raised when a contract is resolved.
+        /// Raised when a contract is fulfilled.
         /// </summary>
-        public UnityEvent<IContract> OnResolved;
+        public UnityEvent<IContract> OnFulfilled;
 
         /// <summary>
         /// Raised when a contract is rejected.
@@ -117,8 +117,8 @@ namespace Saye.Contracts.Scripting
         private void HandleContractState(object sender, EventArgs e)
         {
             var contract = (IContract)sender;
-            var consequences = scriptedContractMapping[contract].NextOnResolved;
-            Debug.Log($"Handling resolved contract: {contract}");
+            var consequences = scriptedContractMapping[contract].NextOnFulfilled;
+            Debug.Log($"Handling fulfilled contract: {contract}");
             IssueConsequences(contract, consequences);
         }
 

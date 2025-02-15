@@ -6,174 +6,93 @@ namespace Saye.Contracts.Tests
     public class ConditionTests
     {
         [Test]
-        public void ConditionSatisfiedOnObserve()
-        {
-            var condition = Condition.Always;
-
-            var satisfied = false;
-            void handleState(object sender, ObservableStateEventArgs<bool> e) => satisfied = e.State;
-
-            condition.State += handleState;
-            Assert.IsTrue(satisfied, "Condition should have communicated satisfied on observe.");
-        }
-
-        [Test]
-        public void ConditionDissatisfiedOnObserve()
-        {
-            var condition = Condition.Never;
-
-            var satisfied = true;
-            void handleState(object sender, ObservableStateEventArgs<bool> e) => satisfied = e.State;
-
-            condition.State += handleState;
-            Assert.IsFalse(satisfied, "Condition should have communicated dissatisfied on observe.");
-        }
-
-        [Test]
-        public void ConditionSatisfiedOnEvent()
+        public void ConditionUpdatedOnEvent()
         {
             var subject = new MockSubject(false);
             var condition = subject.AsCondition();
 
             var satisfied = true;
-            void handleState(object sender, ObservableStateEventArgs<bool> e) => satisfied = e.State;
+            void handleState(object sender, StateEventArgs<bool> e) => satisfied = e.CurrentState;
 
             condition.State += handleState;
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied on observe.");
+            Assert.IsFalse(satisfied, "Is dissatisfied on subscribe.");
 
             subject.Satisfy();
-            Assert.IsTrue(satisfied, "Condition should be satisfied on event.");
+            Assert.IsTrue(satisfied, "Is satisfied on event.");
 
             subject.Dissatisfy();
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied on event.");
+            Assert.IsFalse(satisfied, "Is dissatisfied on event.");
 
             condition.State -= handleState;
-            Assert.IsFalse(satisfied, "Condition should still be dissatisfied after unobserving.");
+            Assert.IsFalse(satisfied, "Is still dissatisfied after unsubscribing.");
 
             subject.Satisfy();
-            Assert.IsFalse(satisfied, "Condition should not be satisfied on event after unobserving.");
+            Assert.IsFalse(satisfied, "Is not satisfied on event after unsubscribing.");
 
             condition.State += handleState;
-            Assert.IsTrue(satisfied, "Condition should again be satisfied on observe.");
+            Assert.IsTrue(satisfied, "Is satisfied on subscribe.");
 
             subject.Dissatisfy();
-            Assert.IsFalse(satisfied, "Condition should again be dissatisfied on event.");
+            Assert.IsFalse(satisfied, "Is dissatisfied on event.");
 
             subject.Satisfy();
-            Assert.IsTrue(satisfied, "Condition should again be satisfied on event.");
+            Assert.IsTrue(satisfied, "Is satisfied on event.");
 
             condition.State -= handleState;
-            Assert.IsTrue(satisfied, "Condition should still be satisfied after unobserving.");
+            Assert.IsTrue(satisfied, "Is still satisfied after unsubscribing.");
         }
 
         [Test]
-        public void AllConditionSatisfied()
+        public void AllConditionUpdatedOnEvent()
         {
-            var a = new MockSubject(false);
-            var b = new MockSubject(false);
-            var condition = Condition.All(a.AsCondition(), b.AsCondition());
+            var subjectA = new MockSubject(false);
+            var subjectB = new MockSubject(false);
+            var condition = Condition.All(subjectA.AsCondition(), subjectB.AsCondition());
 
             var satisfied = true;
-            void handleState(object sender, ObservableStateEventArgs<bool> e) => satisfied = e.State;
+            void handleState(object sender, StateEventArgs<bool> e) => satisfied = e.CurrentState;
             condition.State += handleState;
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied on observe.");
+            Assert.IsFalse(satisfied, "Is dissatisfied on subscribe.");
 
-            a.Satisfy();
-            Assert.IsFalse(satisfied, "Condition should still be dissatisfied when only a is satisfied.");
+            subjectA.Satisfy();
+            Assert.IsFalse(satisfied, "Is still dissatisfied when only subject A is satisfied.");
 
-            b.Satisfy();
-            Assert.IsTrue(satisfied, "Condition should be satisfied when both a and b are satisfied.");
+            subjectB.Satisfy();
+            Assert.IsTrue(satisfied, "Is satisfied when both subject A and subject B are satisfied.");
 
-            a.Dissatisfy();
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied when only b is satisfied.");
+            subjectA.Dissatisfy();
+            Assert.IsFalse(satisfied, "Is dissatisfied when only subject B is satisfied.");
 
-            a.Satisfy();
-            Assert.IsTrue(satisfied, "Condition should be satisfied again when a is satisfied.");
+            subjectA.Satisfy();
+            Assert.IsTrue(satisfied, "Is satisfied again when subject A is satisfied.");
 
-            b.Dissatisfy();
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied when b is dissatisfied.");
+            subjectB.Dissatisfy();
+            Assert.IsFalse(satisfied, "Is dissatisfied when b is dissatisfied.");
         }
 
         [Test]
-        public void AnyConditionSatisfied()
+        public void AnyConditionUpdatedOnEvent()
         {
             var a = new MockSubject(false);
             var b = new MockSubject(false);
             var condition = Condition.Any(a.AsCondition(), b.AsCondition());
 
             var satisfied = true;
-            void handleState(object sender, ObservableStateEventArgs<bool> e) => satisfied = e.State;
+            void handleState(object sender, StateEventArgs<bool> e) => satisfied = e.CurrentState;
             condition.State += handleState;
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied on observe.");
+            Assert.IsFalse(satisfied, "Is dissatisfied on subscribe.");
 
             a.Satisfy();
-            Assert.IsTrue(satisfied, "Condition should be satisfied when only a is satisfied.");
+            Assert.IsTrue(satisfied, "Is satisfied when only subject A is satisfied.");
 
             b.Satisfy();
-            Assert.IsTrue(satisfied, "Condition should still be satisfied when both a and b are satisfied.");
+            Assert.IsTrue(satisfied, "Is still satisfied when both subject A and subject B are satisfied.");
 
             a.Dissatisfy();
-            Assert.IsTrue(satisfied, "Condition should still be satisfied when only b is satisfied.");
+            Assert.IsTrue(satisfied, "Is still satisfied when only subject B is satisfied.");
 
             b.Dissatisfy();
-            Assert.IsFalse(satisfied, "Condition should be dissatisfied when both a and b are dissatisfied.");
-        }
-
-        [Test]
-        public void ConditionInvokesEvents()
-        {
-            var subject = new MockSubject(false);
-            var condition = subject.AsCondition();
-
-            var satisfactions = 0;
-            var dissatisfactions = 0;
-            void handleState(object sender, ObservableStateEventArgs<bool> e)
-            {
-                if (e.State)
-                {
-                    ++satisfactions;
-                }
-                else
-                {
-                    ++dissatisfactions;
-                }
-            }
-
-            condition.State += handleState;
-            Assert.AreEqual(1, dissatisfactions, "Observe communicates initially dissatisfied.");
-            Assert.AreEqual(0, satisfactions, "Observe does not communicate opposite state.");
-
-            subject.Dissatisfy();
-            Assert.AreEqual(1, dissatisfactions, "Observe does not communicate still dissatisfied.");
-            Assert.AreEqual(0, satisfactions, "Observe does not communicate opposite state.");
-
-            subject.Satisfy();
-            Assert.AreEqual(1, satisfactions, "Observe communicates when becomes satisfied.");
-            Assert.AreEqual(1, dissatisfactions, "Observe does not communicate opposite state.");
-
-            subject.Dissatisfy();
-            Assert.AreEqual(2, dissatisfactions, "Observe communicates when becomes dissatisfied.");
-            Assert.AreEqual(1, satisfactions, "Observe does not communicate opposite state.");
-
-            condition.State -= handleState;
-            Assert.AreEqual(2, dissatisfactions, "Unobserve does not communicate dissatisfied.");
-            Assert.AreEqual(1, satisfactions, "Unobserve does not communicate satisfied.");
-
-            subject.Satisfy();
-            Assert.AreEqual(1, satisfactions, "Unobserve does not communicate when subject becomes satisfied.");
-            Assert.AreEqual(2, dissatisfactions, "Unobserve does not communicate opposite state.");
-
-            subject.Dissatisfy();
-            Assert.AreEqual(2, dissatisfactions, "Unobserve does not communicate when subject becomes dissatisfied.");
-            Assert.AreEqual(1, satisfactions, "Unobserve does not communicate opposite state.");
-
-            subject.Satisfy();
-            Assert.AreEqual(2, dissatisfactions, "Unobserve does not communicate opposite state.");
-            Assert.AreEqual(1, satisfactions, "Unobserve does not communicate when subject becomes satisfied.");
-
-            condition.State += handleState;
-            Assert.AreEqual(2, dissatisfactions, "Observe does not communicate opposite state.");
-            Assert.AreEqual(2, satisfactions, "Observe communicates subject satisfied.");
+            Assert.IsFalse(satisfied, "Is dissatisfied when both subject A and subject B are dissatisfied.");
         }
     }
 }

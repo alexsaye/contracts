@@ -7,29 +7,29 @@ namespace Saye.Contracts
     /// <summary>
     /// Routes of career progression via a contract.
     /// </summary>
-    public class CareerProgression : Observable<IEnumerable<ICareerProgression>>, ICareerProgression
+    public class CareerProgression : Notice<IEnumerable<ICareerProgression>>, ICareerProgression
     {
         public IContract Contract { get; }
 
-        public IEnumerable<ICareerProgression> NextOnResolve { get; }
+        public IEnumerable<ICareerProgression> NextOnFulfilled { get; }
 
-        public IEnumerable<ICareerProgression> NextOnReject { get; }
+        public IEnumerable<ICareerProgression> NextOnRejected { get; }
 
-        public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnResolve, IEnumerable<ICareerProgression> nextOnReject)
+        public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnFulfilled, IEnumerable<ICareerProgression> nextOnRejected)
         {
             Contract = contract;
-            NextOnResolve = nextOnResolve;
-            NextOnResolve = nextOnReject;
-            Observed += HandleObserved;
+            NextOnFulfilled = nextOnFulfilled;
+            NextOnFulfilled = nextOnRejected;
+            Noticed += HandleNoticed;
         }
 
-        public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnResolve) : this(contract, nextOnResolve, Enumerable.Empty<ICareerProgression>()) { }
+        public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnFulfilled) : this(contract, nextOnFulfilled, Enumerable.Empty<ICareerProgression>()) { }
 
         public CareerProgression(IContract contract) : this(contract, Enumerable.Empty<ICareerProgression>(), Enumerable.Empty<ICareerProgression>()) { }
 
-        private void HandleObserved(object sender, ObservableObservedEventArgs e)
+        private void HandleNoticed(object sender, NoticedEventArgs e)
         {
-            if (e.IsObserved)
+            if (e.IsNoticed)
             {
                 Contract.State += HandleContractState;
             }
@@ -39,15 +39,16 @@ namespace Saye.Contracts
             }
         }
 
-        private void HandleContractState(object sender, ObservableStateEventArgs<ContractState> e)
+        private void HandleContractState(object sender, StateEventArgs<ContractState> e)
         {
-            if (e.State == ContractState.Fulfilled)
+            // Update the current state if the contract is fulfilled or rejected.
+            if (e.CurrentState == ContractState.Fulfilled)
             {
-                CurrentState = NextOnResolve;
+                CurrentState = NextOnFulfilled;
             }
-            else if (e.State == ContractState.Rejected)
+            else if (e.CurrentState == ContractState.Rejected)
             {
-                CurrentState = NextOnReject;
+                CurrentState = NextOnRejected;
             }
         }
     }
@@ -55,7 +56,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Represents routes of career progression via a contract.
     /// </summary>
-    public interface ICareerProgression : IObservable<IEnumerable<ICareerProgression>>
+    public interface ICareerProgression : INotice<IEnumerable<ICareerProgression>>
     {
         /// <summary>
         /// The contract for this progression.
@@ -63,13 +64,13 @@ namespace Saye.Contracts
         IContract Contract { get; }
 
         /// <summary>
-        /// The next progressions when the contract is resolved.
+        /// The next progressions when the contract is fulfilled.
         /// </summary>
-        public IEnumerable<ICareerProgression> NextOnResolve { get; }
+        public IEnumerable<ICareerProgression> NextOnFulfilled { get; }
 
         /// <summary>
         /// The next progressions when the contract is rejected.
         /// </summary>
-        public IEnumerable<ICareerProgression> NextOnReject { get; }
+        public IEnumerable<ICareerProgression> NextOnRejected { get; }
     }
 }

@@ -5,7 +5,7 @@ namespace Saye.Contracts
     /// <summary>
     /// A promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
-    public class Contract : Observable<ContractState>, IContract
+    public class Contract : ReadOnlyNotice<ContractState>, IContract
     {
         private readonly ICondition fulfilling;
         public ICondition Fulfilling => fulfilling;
@@ -19,17 +19,17 @@ namespace Saye.Contracts
         {
             this.fulfilling = fulfilling;
             this.rejecting = rejecting;
-            Observed += HandleObserved;
+            Noticed += HandleNoticed;
 
             // Determine the initial state, with rejection taking precedence.
             CurrentState = rejecting.CurrentState ? ContractState.Rejected : fulfilling.CurrentState ? ContractState.Fulfilled : ContractState.Pending;
         }
 
-        private void HandleObserved(object sender, ObservableObservedEventArgs e)
+        private void HandleNoticed(object sender, NoticedEventArgs e)
         {
-            if (e.IsObserved)
+            if (e.IsNoticed)
             {
-                // Observe both conditions, with rejection taking precedence.
+                // Subscribe to both conditions, with rejection taking precedence.
                 Rejecting.State += HandleRejectingState;
                 Fulfilling.State += HandleFulfillingState;
             }
@@ -40,29 +40,35 @@ namespace Saye.Contracts
             }
         }
 
-        private void HandleFulfillingState(object sender, ObservableStateEventArgs<bool> e)
+        private void HandleFulfillingState(object sender, StateEventArgs<bool> e)
         {
-            if (e.State)
+            if (e.CurrentState)
             {
-                // Automatically stop observing the conditions if the contract is fulfilled.
+                // Automatically unsubscribe from the conditions if the contract is fulfilled.
                 Fulfilling.State -= HandleFulfillingState;
                 Rejecting.State -= HandleRejectingState;
 
-                // Fulfill the contract.
-                CurrentState = ContractState.Fulfilled;
+                // Fulfill the contract if it has not already been rejected.
+                if (CurrentState == ContractState.Pending)
+                {
+                    CurrentState = ContractState.Fulfilled;
+                }
             }
         }
 
-        private void HandleRejectingState(object sender, ObservableStateEventArgs<bool> e)
+        private void HandleRejectingState(object sender, StateEventArgs<bool> e)
         {
-            if (e.State)
+            if (e.CurrentState)
             {
-                // Automatically stop observing the conditions if the contract is rejected.
+                // Automatically unsubscribe from the conditions if the contract is rejected.
                 Rejecting.State -= HandleRejectingState;
                 Fulfilling.State -= HandleFulfillingState;
 
-                // Reject the contract.
-                CurrentState = ContractState.Rejected;
+                // Reject the contract if it has not already been fulfilled.
+                if (CurrentState == ContractState.Pending)
+                {
+                    CurrentState = ContractState.Rejected;
+                }
             }
         }
     }
@@ -70,7 +76,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Represents a promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
-    public interface IContract : IObservable<ContractState>
+    public interface IContract : IReadOnlyNotice<ContractState>
     {
         /// <summary>
         /// The condition for fulfilling the contract.

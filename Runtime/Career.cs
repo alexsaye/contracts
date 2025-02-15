@@ -30,11 +30,11 @@ namespace Saye.Contracts.Scripting
             Issue(new CareerProgression(contract));
         }
 
-        private void IssueNext(object sender, ObservableStateEventArgs<IEnumerable<ICareerProgression>> e)
+        private void IssueNext(object sender, StateEventArgs<IEnumerable<ICareerProgression>> e)
         {
             var completed = (ICareerProgression)sender;
             pending.Remove(completed);
-            foreach (var progression in e.State)
+            foreach (var progression in e.CurrentState)
             {
                 Issue(progression);
             }
