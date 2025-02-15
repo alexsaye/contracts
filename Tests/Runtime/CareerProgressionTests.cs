@@ -8,33 +8,33 @@ namespace Saye.Contracts.Tests
         [Test]
         public void CareerProgressionPending()
         {
-            var contractA = new Contract(Condition.Never, Condition.Never);
-            var contractPromotion = new Contract(Condition.Never, Condition.Never);
-            var contractDemotion = new Contract(Condition.Never, Condition.Never);
-            var progression = new CareerProgression(contractA, contractPromotion, contractDemotion);
+            var contract = new Contract(Condition.Never);
+            var promotionContract = new Contract(Condition.Never);
+            var demotionContract = new Contract(Condition.Never);
+            var progression = new CareerProgression(contract, promotionContract, demotionContract);
             Assert.AreEqual(0, progression.CurrentState.Count(), "Has not progressed.");
         }
 
         [Test]
         public void CareerProgressionFulfilled()
         {
-            var contractA = new Contract(Condition.Always, Condition.Never);
-            var contractPromotion = new Contract(Condition.Never, Condition.Never);
-            var contractDemotion = new Contract(Condition.Never, Condition.Never);
-            var progression = new CareerProgression(contractA, contractPromotion, contractDemotion);
+            var contract = new Contract(Condition.Always);
+            var promotionContract = new Contract(Condition.Never);
+            var demotionContract = new Contract(Condition.Never);
+            var progression = new CareerProgression(contract, promotionContract, demotionContract);
             Assert.AreEqual(1, progression.CurrentState.Count(), "Has a single progression.");
-            Assert.AreSame(contractPromotion, progression.CurrentState.First().Contract, "Has progressed to contract Promotion.");
+            Assert.AreSame(promotionContract, progression.CurrentState.First().Contract, "Has progressed to the promotion.");
         }
 
         [Test]
         public void CareerProgressionRejected()
         {
-            var contractA = new Contract(Condition.Never, Condition.Always);
-            var contractPromotion = new Contract(Condition.Never, Condition.Never);
-            var contractDemotion = new Contract(Condition.Never, Condition.Never);
-            var progression = new CareerProgression(contractA, contractPromotion, contractDemotion);
+            var contract = new Contract(Condition.Never, Condition.Always);
+            var promotionContract = new Contract(Condition.Never);
+            var demotionContract = new Contract(Condition.Never);
+            var progression = new CareerProgression(contract, promotionContract, demotionContract);
             Assert.AreEqual(1, progression.CurrentState.Count(), "Has a single progression.");
-            Assert.AreSame(contractDemotion, progression.CurrentState.First().Contract, "Has progressed to contract Demotion.");
+            Assert.AreSame(demotionContract, progression.CurrentState.First().Contract, "Has progressed to the demotion.");
         }
     }
 }

@@ -3,7 +3,7 @@ namespace Saye.Contracts
     /// <summary>
     /// A promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
-    public class Contract : ReadOnlyNotice<ContractState>, IContract
+    public class Contract : ReadOnlyWatchable<ContractState>, IContract
     {
         private readonly ICondition fulfilling;
         public ICondition Fulfilling => fulfilling;
@@ -22,12 +22,12 @@ namespace Saye.Contracts
         {
             this.fulfilling = fulfilling;
             this.rejecting = rejecting;
-            Noticed += HandleNoticed;
+            Watched += HandleWatched;
         }
 
-        private void HandleNoticed(object sender, NoticedEventArgs e)
+        private void HandleWatched(object sender, WatchedEventArgs e)
         {
-            if (e.IsNoticed)
+            if (e.IsWatched)
             {
                 // Subscribe to both conditions, with rejection taking precedence.
                 Rejecting.State += HandleRejectingState;
@@ -76,7 +76,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Represents a promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
-    public interface IContract : IReadOnlyNotice<ContractState>
+    public interface IContract : IReadOnlyWatchable<ContractState>
     {
         /// <summary>
         /// The condition for fulfilling the contract.

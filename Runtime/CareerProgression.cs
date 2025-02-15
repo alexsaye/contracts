@@ -6,7 +6,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Routes of career progression via a contract.
     /// </summary>
-    public class CareerProgression : ReadOnlyNotice<IEnumerable<ICareerProgression>>, ICareerProgression
+    public class CareerProgression : ReadOnlyWatchable<IEnumerable<ICareerProgression>>, ICareerProgression
     {
         public IContract Contract { get; }
 
@@ -24,17 +24,17 @@ namespace Saye.Contracts
         {
             Contract = contract;
             NextOnFulfilled = nextOnFulfilled;
-            NextOnFulfilled = nextOnRejected;
-            Noticed += HandleNoticed;
+            NextOnRejected = nextOnRejected;
+            Watched += HandleWatched;
         }
 
         public CareerProgression(IContract contract, IContract nextOnFulfilled, IContract nextOnRejected) : this(contract, new[] { new CareerProgression(nextOnFulfilled) }, new[] { new CareerProgression(nextOnRejected) }) { }
 
         public CareerProgression(IContract contract) : this(contract, Enumerable.Empty<ICareerProgression>(), Enumerable.Empty<ICareerProgression>()) { }
 
-        private void HandleNoticed(object sender, NoticedEventArgs e)
+        private void HandleWatched(object sender, WatchedEventArgs e)
         {
-            if (e.IsNoticed)
+            if (e.IsWatched)
             {
                 Contract.State += HandleContractState;
             }
@@ -61,7 +61,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Represents routes of career progression via a contract.
     /// </summary>
-    public interface ICareerProgression : IReadOnlyNotice<IEnumerable<ICareerProgression>>
+    public interface ICareerProgression : IReadOnlyWatchable<IEnumerable<ICareerProgression>>
     {
         /// <summary>
         /// The contract for this progression.

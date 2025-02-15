@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Saye.Contracts.Scripting
+namespace Saye.Contracts
 {
     /// <summary>
     /// A career in which contracts are issued through the progression of other contracts.
@@ -33,11 +33,14 @@ namespace Saye.Contracts.Scripting
 
         private void IssueNext(object sender, StateEventArgs<IEnumerable<ICareerProgression>> e)
         {
-            var completed = (ICareerProgression)sender;
-            pending.Remove(completed);
-            foreach (var progression in e.CurrentState)
+            var progression = (ICareerProgression)sender;
+            if (progression.Contract.CurrentState != ContractState.Pending)
             {
-                Issue(progression);
+                pending.Remove(progression);
+                foreach (var next in e.CurrentState)
+                {
+                    Issue(next);
+                }
             }
         }
     }

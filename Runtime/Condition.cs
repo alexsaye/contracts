@@ -7,7 +7,7 @@ namespace Saye.Contracts
     /// <summary>
     /// A condition that can be either satisfied or dissatisfied.
     /// </summary>
-    public class Condition : ReadOnlyNotice<bool>, ICondition
+    public class Condition : ReadOnlyWatchable<bool>, ICondition
     {
         /// <summary>
         /// Create a condition based on a given assertion, with explicitly managed binding.
@@ -96,22 +96,22 @@ namespace Saye.Contracts
             this.assert = assert;
             this.bind = bind;
             this.unbind = unbind;
-            Noticed += HandleNoticed;
+            Watched += HandleWatched;
         }
 
-        private void HandleNoticed(object sender, NoticedEventArgs e)
+        private void HandleWatched(object sender, WatchedEventArgs e)
         {
-            if (e.IsNoticed)
+            if (e.IsWatched)
             {
-                // Bind to allow automatic updates while noticed.
+                // Bind to allow automatic updates while watched.
                 bind(this);
 
-                // Update in case the externally asserted state has changed since the condition was last noticed.
+                // Update in case the externally asserted state has changed since the condition was last watched.
                 Update();
             }
             else
             {
-                // Unbind to prevent unnecessary automatic updates while not noticed.
+                // Unbind to prevent unnecessary automatic updates while not watched.
                 unbind(this);
             }
         }
@@ -130,7 +130,7 @@ namespace Saye.Contracts
     /// <summary>
     /// Represents a condition that can be either satisfied or dissatisfied.
     /// </summary>
-    public interface ICondition : IReadOnlyNotice<bool>
+    public interface ICondition : IReadOnlyWatchable<bool>
     {
         /// <summary>
         /// Updates the condition's state.

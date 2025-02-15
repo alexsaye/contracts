@@ -4,10 +4,10 @@ using System.Collections.Generic;
 namespace Saye.Contracts
 {
     /// <summary>
-    /// Provides noticeable state with events which immediately push on subscription.
+    /// Provides watchable state with events which immediately push on subscription.
     /// </summary>
     /// <typeparam name="T">The type of the state.</typeparam>
-    public class Notice<T> : ReadOnlyNotice<T>, INotice<T>
+    public class Watchable<T> : ReadOnlyWatchable<T>, IWatchable<T>
     {
         public new T CurrentState
         {
@@ -15,16 +15,16 @@ namespace Saye.Contracts
             set => base.CurrentState = value;
         }
 
-        public Notice(T initialState) : base(initialState) { }
+        public Watchable(T initialState) : base(initialState) { }
 
-        public Notice() : base() { }
+        public Watchable() : base() { }
     }
 
     /// <summary>
-    /// Provides read-only noticeable state with events which immediately push on subscription.
+    /// Provides read-only watchable state with events which immediately push on subscription.
     /// </summary>
     /// <typeparam name="T">The type of the state.</typeparam>
-    public class ReadOnlyNotice<T> : IReadOnlyNotice<T>
+    public class ReadOnlyWatchable<T> : IReadOnlyWatchable<T>
     {
         private T currentState;
         public T CurrentState
@@ -47,87 +47,87 @@ namespace Saye.Contracts
             add
             {
                 // Only allow unique subscriptions.
-                if (!noticers.Contains(value))
+                if (!watchers.Contains(value))
                 {
-                    // Add and subscribe the noticer.
-                    noticers.Add(value);
+                    // Add and subscribe the watcher.
+                    watchers.Add(value);
                     state += value;
 
-                    // If this is the first noticer, push an noticed event.
-                    if (noticers.Count == 1)
+                    // If this is the first watcher, push an watched event.
+                    if (watchers.Count == 1)
                     {
-                        noticed?.Invoke(this, new NoticedEventArgs(true));
+                        watched?.Invoke(this, new WatchedEventArgs(true));
 
-                        // Check that the noticer didn't stop noticing due to the above event.
-                        if (!noticers.Contains(value))
+                        // Check that the watcher didn't stop watching due to the above event.
+                        if (!watchers.Contains(value))
                         {
                             return;
                         }
                     }
 
-                    // Push the state to the noticer.
+                    // Push the state to the watcher.
                     value(this, new StateEventArgs<T>(CurrentState));
                 }
             }
             remove
             {
-                // There is no need to remove a subscriber that is not noticing.
-                if (noticers.Contains(value))
+                // There is no need to remove a subscriber that is not watching.
+                if (watchers.Contains(value))
                 {
-                    // Remove and unsubscribe the noticer.
-                    noticers.Remove(value);
+                    // Remove and unsubscribe the watcher.
+                    watchers.Remove(value);
                     state -= value;
 
-                    // If this is the last noticer, push a not noticed event.
-                    if (noticers.Count == 0)
+                    // If this is the last watcher, push a not watched event.
+                    if (watchers.Count == 0)
                     {
-                        noticed?.Invoke(this, new NoticedEventArgs(false));
+                        watched?.Invoke(this, new WatchedEventArgs(false));
                     }
                 }
             }
         }
 
-        private HashSet<EventHandler<StateEventArgs<T>>> noticers = new();
-        public bool IsNoticed => noticers.Count > 0;
+        private HashSet<EventHandler<StateEventArgs<T>>> watchers = new();
+        public bool IsWatched => watchers.Count > 0;
 
-        private event EventHandler<NoticedEventArgs> noticed;
-        public event EventHandler<NoticedEventArgs> Noticed
+        private event EventHandler<WatchedEventArgs> watched;
+        public event EventHandler<WatchedEventArgs> Watched
         {
             add
             {
-                noticed += value;
+                watched += value;
 
-                // Push whether the state is being noticed to the subscriber.
-                value(this, new NoticedEventArgs(IsNoticed));
+                // Push whether the state is being watched to the subscriber.
+                value(this, new WatchedEventArgs(IsWatched));
             }
             remove
             {
-                noticed -= value;
+                watched -= value;
             }
         }
 
-        public ReadOnlyNotice(T initialState)
+        public ReadOnlyWatchable(T initialState)
         {
             currentState = initialState;
         }
 
-        public ReadOnlyNotice() : this(default) { }
+        public ReadOnlyWatchable() : this(default) { }
     }
 
     /// <summary>
-    /// Provides noticeable state.
+    /// Provides watchable state.
     /// </summary>
     /// <typeparam name="T">The type of the state.</typeparam>
-    public interface INotice<T> : IReadOnlyNotice<T>
+    public interface IWatchable<T> : IReadOnlyWatchable<T>
     {
         new T CurrentState { get; set; }
     }
 
     /// <summary>
-    /// Provides read-only noticeable state.
+    /// Provides read-only watchable state.
     /// </summary>
     /// <typeparam name="T">The type of the state.</typeparam>
-    public interface IReadOnlyNotice<T>
+    public interface IReadOnlyWatchable<T>
     {
         /// <summary>
         /// The current state.
@@ -140,31 +140,31 @@ namespace Saye.Contracts
         event EventHandler<StateEventArgs<T>> State;
 
         /// <summary>
-        /// Whether the state is being noticed.
+        /// Whether the watchable state is being watched.
         /// </summary>
-        bool IsNoticed { get; }
+        bool IsWatched { get; }
 
         /// <summary>
-        /// Raised to push whether the state is being noticed.
+        /// Raised to push whether the watchable state is being watched.
         /// </summary>
-        event EventHandler<NoticedEventArgs> Noticed;
+        event EventHandler<WatchedEventArgs> Watched;
     }
 
     /// <summary>
-    /// Raised to push whether the state of a notice is being noticed.
+    /// Raised to push whether a watchable state is being watched.
     /// </summary>
-    public class NoticedEventArgs : EventArgs
+    public class WatchedEventArgs : EventArgs
     {
-        public bool IsNoticed { get; }
+        public bool IsWatched { get; }
 
-        public NoticedEventArgs(bool noticed)
+        public WatchedEventArgs(bool watched)
         {
-            IsNoticed = noticed;
+            IsWatched = watched;
         }
     }
 
     /// <summary>
-    /// Raised to push the current state of a notice.
+    /// Raised to push the current state of a watchable.
     /// </summary>
     /// <typeparam name="T">The type of the state.</typeparam>
     public class StateEventArgs<T> : EventArgs
