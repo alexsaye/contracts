@@ -3,6 +3,7 @@ using UnityEditor.Experimental.GraphView;
 using System.Reflection;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
+using UnityEditor.Search;
 
 namespace Contracts.Scripting.Graph
 {
@@ -35,6 +36,12 @@ namespace Contracts.Scripting.Graph
                 if (output != null)
                 {
                     CreateOutputPort(field, output);
+                }
+
+                var slot = field.GetCustomAttribute<NodeSlotAttribute>();
+                if (slot != null)
+                {
+                    CreateSlot(field);
                 }
             }
 
@@ -70,6 +77,17 @@ namespace Contracts.Scripting.Graph
 
             outputPorts.Add(field.Name, port);
             outputContainer.Add(port);
+        }
+
+        private void CreateSlot(FieldInfo field)
+        {
+            var slot = new ObjectField()
+            {
+                objectType = field.FieldType,
+                bindingPath = field.Name
+            };
+
+            extensionContainer.Add(slot);
         }
 
         public Port GetInputPort(string name)

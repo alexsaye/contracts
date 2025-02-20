@@ -62,4 +62,12 @@ namespace Contracts.Scripting.Graph
             Capacity = capacity;
         }
     }
+
+    [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
+    public class NodeSlotAttribute : Attribute
+    {
+        public NodeSlotAttribute()
+        {
+        }
+    }
 }

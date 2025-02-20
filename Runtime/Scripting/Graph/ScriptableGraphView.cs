@@ -139,7 +139,7 @@ namespace Contracts.Scripting.Graph
             var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
             var inputPort = inputNode.GetInputPort(edgeSave.InputPortName);
 
-            var edge = new UnityEditor.Experimental.GraphView.Edge
+            var edge = new Edge
             {
                 input = inputPort,
                 output = outputPort
