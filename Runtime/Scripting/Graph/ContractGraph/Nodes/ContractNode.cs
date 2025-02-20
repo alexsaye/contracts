@@ -2,7 +2,8 @@ using UnityEditor.Experimental.GraphView;
 
 namespace Contracts.Scripting.Graph
 {
-    [NodeMenu("Contract")]
+    [NodeContext(typeof(ContractGraph))]
+    [NodePresentOnCreation]
     public class ContractNode : ScriptableGraphNode
     {
         [NodeInput("Fulfill", Port.Capacity.Single)]
@@ -13,7 +14,6 @@ namespace Contracts.Scripting.Graph
 
         public ContractNode() : base("Contract")
         {
-
         }
     }
 }

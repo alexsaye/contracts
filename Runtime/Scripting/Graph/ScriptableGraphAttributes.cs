@@ -1,22 +1,43 @@
 using System;
 using UnityEngine;
 using UnityEditor.Experimental.GraphView;
+using System.Collections;
 
 namespace Contracts.Scripting.Graph
 {
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public class NodeMenuAttribute : Attribute
     {
         public string MenuName { get; }
-        public Vector2 Size { get;  }
 
         public NodeMenuAttribute(string menuName)
-            : this(menuName, new Vector2(100, 100)) { } 
-
-        public NodeMenuAttribute(string menuName, Vector2 size)
         {
             MenuName = menuName;
-            Size = size;
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    public class NodePresentOnCreationAttribute : Attribute
+    {
+        public Vector2 Position { get; }
+
+        public NodePresentOnCreationAttribute()
+            : this(0, 0) { }
+
+        public NodePresentOnCreationAttribute(float x, float y)
+        {
+            Position = new Vector2(x, y);
+        }
+    }
+
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    public class NodeContextAttribute : Attribute
+    {
+        public Type[] Contexts { get; }
+
+        public NodeContextAttribute(params Type[] contexts)
+        {
+            Contexts = contexts;
         }
     }
 

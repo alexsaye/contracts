@@ -4,6 +4,7 @@ using UnityEditor.UIElements;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine.UIElements;
 using System;
+using System.Linq;
 
 namespace Contracts.Scripting.Graph
 {
@@ -19,12 +20,11 @@ namespace Contracts.Scripting.Graph
         public static void OpenWindow()
         {
             var inspectorType = typeof(SceneView);
-            EditorWindow window = EditorWindow.GetWindow<GraphViewEditorWindow>(new Type[] { inspectorType });
+            EditorWindow window = GetWindow<GraphViewEditorWindow>(new Type[] { inspectorType });
         }
         
         public void ShowGraph(ScriptableGraph graph)
         {
-            Debug.Log("Showign graph");
             Graph = graph;
             if (View != null)
             {
@@ -80,7 +80,14 @@ namespace Contracts.Scripting.Graph
             UnityEngine.Object obj = EditorUtility.InstanceIDToObject(instanceID);
             if (obj is ScriptableGraph graph)
             {
-                ScriptableGraphEditorWindow window = EditorWindow.GetWindow<ScriptableGraphEditorWindow>();
+                var window = Resources.FindObjectsOfTypeAll<ScriptableGraphEditorWindow>().FirstOrDefault(window => window.Graph == graph);
+                if (window != null)
+                {
+                    window.Focus();
+                    return true;
+                }
+
+                window = EditorWindow.CreateWindow<ScriptableGraphEditorWindow>(graph.name, typeof(SceneView));
                 window.ShowGraph(graph);
                 return true;
             }

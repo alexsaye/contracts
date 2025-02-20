@@ -4,6 +4,7 @@ using UnityEngine;
 namespace Contracts.Scripting.Graph
 {
     [NodeMenu("Condition")]
+    [NodeContext(typeof(ContractGraph))]
     public class ConditionNode : ScriptableGraphNode
     {
         [NodeOutput("Satisfied", Port.Capacity.Single)]

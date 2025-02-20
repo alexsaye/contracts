@@ -2,19 +2,20 @@ using UnityEditor.Experimental.GraphView;
 
 namespace Contracts.Scripting.Graph
 {
-    [NodeMenu("Contract")]
+    [NodeMenu("Career Progression")]
+    [NodeContext(typeof(CareerGraph))]
     public class CareerProgressionNode : ScriptableGraphNode
     {
         [NodeInput("From", Port.Capacity.Multi)]
-        public CareerProgressionNode From;
+        public ScriptableGraphNode From;
 
         [NodeOutput("Fulfill", Port.Capacity.Single)]
-        public CareerProgressionNode Fulfill;
+        public ScriptableGraphNode Fulfill;
 
         [NodeOutput("Reject", Port.Capacity.Single)]
-        public CareerProgressionNode Reject;
+        public ScriptableGraphNode Reject;
 
-        public CareerProgressionNode() : base("Contract")
+        public CareerProgressionNode() : base("Career Progression")
         {
 
         }

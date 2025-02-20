@@ -8,8 +8,8 @@ namespace Contracts.Scripting.Graph
     [Serializable]
     public class NodeSaveData
     {
-        public readonly string Guid;
         public readonly string Type;
+        public readonly string Guid;
         public readonly Rect Position;
 
         public NodeSaveData(ScriptableGraphNode node)
@@ -17,6 +17,13 @@ namespace Contracts.Scripting.Graph
             Guid = node.Guid;
             Type = node.GetType().AssemblyQualifiedName;
             Position = node.GetPosition();
+        }
+
+        public NodeSaveData(Type type, Vector2 position)
+        {
+            Guid = System.Guid.NewGuid().ToString();
+            Type = type.AssemblyQualifiedName;
+            Position = new Rect(position, Vector2.zero);
         }
     }
 
@@ -27,7 +34,7 @@ namespace Contracts.Scripting.Graph
         public readonly string OutputPortName;
         public readonly string InputNodeGuid;
         public readonly string InputPortName;
-        
+
         public EdgeSaveData(Edge edge)
         {
             ScriptableGraphNode outputNode = edge.output.node as ScriptableGraphNode;

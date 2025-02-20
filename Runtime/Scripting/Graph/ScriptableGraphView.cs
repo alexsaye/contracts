@@ -12,7 +12,7 @@ namespace Contracts.Scripting.Graph
     public class ScriptableGraphView : UnityEditor.Experimental.GraphView.GraphView
     {
         public ScriptableGraph Graph { get; private set; }
-        private static List<(Type type, NodeMenuAttribute attribute)> cachedNodeTypes;
+        private static Dictionary<Type, List<NodeAttributeComposition>> cachedNodeTypes = new();
 
         public ScriptableGraphView(ScriptableGraph graph)
         {
@@ -41,38 +41,60 @@ namespace Contracts.Scripting.Graph
             {
                 CreateEdge(edge);
             }
+
+            RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+        }
+
+        private void OnGeometryChanged(GeometryChangedEvent geometryChangedEvent)
+        {
+            contentViewContainer.transform.position = new Vector3(layout.width / 2, layout.height / 2, 0);
         }
 
         private void EnsureCachedNodeTypes()
         {
-            if (cachedNodeTypes != null)
+            var graphType = Graph.GetType();
+            if (cachedNodeTypes.ContainsKey(graphType))
                 return;
 
-            cachedNodeTypes = new List<(Type type, NodeMenuAttribute attribute)>();
+            var nodeTypes = new List<NodeAttributeComposition>();
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
                 foreach (var type in assembly.GetTypes())
                 {
-                    var attribute = type.GetCustomAttribute<NodeMenuAttribute>();
-                    if (attribute != null)
+                    var menuAttribute = type.GetCustomAttribute<NodeMenuAttribute>();
+                    if (menuAttribute == null)
                     {
-                        cachedNodeTypes.Add((type, attribute));
+                        continue;
                     }
+
+                    var contextAttribute = type.GetCustomAttribute<NodeContextAttribute>();
+                    if (contextAttribute != null && !contextAttribute.Contexts.Contains(Graph.GetType()))
+                    {
+                        continue;
+                    }
+
+                    nodeTypes.Add(new NodeAttributeComposition()
+                    {
+                        Type = type,
+                        Menu = menuAttribute,
+                        Context = contextAttribute,
+                    });
                 }
             }
+            cachedNodeTypes.Add(graphType, nodeTypes);
         }
 
         private void BuildContextualMenu(ContextualMenuPopulateEvent populateEvent)
         {
             EnsureCachedNodeTypes();
 
-            Vector2 localMousePosition = this.contentViewContainer.WorldToLocal(populateEvent.mousePosition);
+            Vector2 localMousePosition = contentViewContainer.WorldToLocal(populateEvent.mousePosition);
 
-            foreach (var (type, attribute) in cachedNodeTypes)
+            foreach (var composition in cachedNodeTypes[Graph.GetType()])
             {
-                populateEvent.menu.AppendAction(attribute.MenuName, (action) =>
+                populateEvent.menu.AppendAction(composition.Menu.MenuName, (action) =>
                 {
-                    CreateNode(type, new Rect(localMousePosition, attribute.Size), Guid.NewGuid().ToString());
+                    CreateNode(composition.Type, new Rect(localMousePosition, Vector2.zero), Guid.NewGuid().ToString());
                 });
             }
         }
@@ -94,18 +116,19 @@ namespace Contracts.Scripting.Graph
             return compatiblePorts;
         }
 
-        private void CreateNode(NodeSaveData nodeSave)
+        private ScriptableGraphNode CreateNode(NodeSaveData nodeSave)
         {
             Debug.Log(nodeSave.Type);
-            CreateNode(Type.GetType(nodeSave.Type), nodeSave.Position, nodeSave.Guid);
+            return CreateNode(Type.GetType(nodeSave.Type), nodeSave.Position, nodeSave.Guid);
         }
 
-        private void CreateNode(Type type, Rect position, string guid)
+        private ScriptableGraphNode CreateNode(Type type, Rect position, string guid)
         {
             var node = (ScriptableGraphNode)Activator.CreateInstance(type);
             node.SetPosition(position);
             node.Guid = guid;
             AddElement(node);
+            return node;
         }
 
         private void CreateEdge(EdgeSaveData edgeSave)
@@ -132,5 +155,12 @@ namespace Contracts.Scripting.Graph
         {
             Graph.Save(graphElements);
         }
+    }
+
+    class NodeAttributeComposition
+    {
+        public Type Type;
+        public NodeMenuAttribute Menu;
+        public NodeContextAttribute Context;
     }
 }
