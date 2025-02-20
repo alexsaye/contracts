@@ -37,6 +37,9 @@ namespace Contracts.Scripting.Graph
                     CreateOutputPort(field, output);
                 }
             }
+
+            RefreshPorts();
+            RefreshExpandedState();
         }
 
         private void CreateInputPort(FieldInfo field, NodeInputAttribute attribute)
@@ -49,9 +52,6 @@ namespace Contracts.Scripting.Graph
             port.portName = attribute.Name;
 
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
-
-            RefreshExpandedState();
-            RefreshPorts();
 
             inputPorts.Add(attribute.Name, port);
             inputContainer.Add(port);
@@ -67,9 +67,6 @@ namespace Contracts.Scripting.Graph
             port.portName = attribute.Name;
 
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
-
-            RefreshExpandedState();
-            RefreshPorts();
 
             outputPorts.Add(attribute.Name, port);
             outputContainer.Add(port);
