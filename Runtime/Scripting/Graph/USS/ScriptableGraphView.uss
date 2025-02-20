@@ -1,4 +1,4 @@
-ContractGraphView
+ScriptableGraphView
 {
     flex-grow: 1;
 }

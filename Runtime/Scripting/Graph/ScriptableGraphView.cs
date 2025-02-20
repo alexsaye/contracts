@@ -25,7 +25,6 @@ namespace Contracts.Scripting.Graph
             this.AddManipulator(new ContentZoomer());
             this.AddManipulator(new ContextualMenuManipulator(BuildContextualMenu));
 
-            styleSheets.Add(AssetDatabase.LoadAssetAtPath<StyleSheet>("Assets/Contracts-New/Editor/USS/ScriptableGraphView.uss"));
             var grid = new GridBackground();
             grid.name = "Grid";
             Add(grid);
