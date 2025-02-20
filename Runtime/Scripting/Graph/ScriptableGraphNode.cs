@@ -11,9 +11,6 @@ namespace Contracts.Scripting.Graph
     {
         public string Guid { get; set; }
 
-        private Dictionary<string, Port> inputPorts = new();
-        private Dictionary<string, Port> outputPorts = new();
-
         public ScriptableGraphNode(string title, Color? titleBarColor = null)
         {
             this.title = title;
@@ -57,10 +54,10 @@ namespace Contracts.Scripting.Graph
                 capacity: attribute.Capacity,
                 type: field.FieldType);
             port.portName = field.Name;
+            port.name = field.Name;
 
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
 
-            inputPorts.Add(field.Name, port);
             inputContainer.Add(port);
         }
 
@@ -72,10 +69,10 @@ namespace Contracts.Scripting.Graph
                 capacity: attribute.Capacity,
                 type: field.FieldType);
             port.portName = field.Name;
+            port.name = field.Name;
 
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
 
-            outputPorts.Add(field.Name, port);
             outputContainer.Add(port);
         }
 
@@ -84,20 +81,27 @@ namespace Contracts.Scripting.Graph
             var slot = new ObjectField()
             {
                 objectType = field.FieldType,
-                bindingPath = field.Name
+                bindingPath = field.Name,
+                searchContext = SearchService.CreateContext("Assets"),
             };
-
+            slot.name = field.Name;
+            slot.RegisterValueChangedCallback((changeEvent) => field.SetValue(this, changeEvent.newValue));
             extensionContainer.Add(slot);
         }
 
         public Port GetInputPort(string name)
         {
-            return inputPorts[name];
+            return inputContainer.Query<Port>(name);
         }
 
         public Port GetOutputPort(string name)
         {
-            return outputPorts[name];
+            return outputContainer.Query<Port>(name);
+        }
+
+        public ObjectField GetSlot(string name)
+        {
+            return extensionContainer.Query<ObjectField>(name);
         }
     }
 }

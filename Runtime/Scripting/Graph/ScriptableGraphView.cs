@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 
 namespace Contracts.Scripting.Graph
 {
-    public class ScriptableGraphView : UnityEditor.Experimental.GraphView.GraphView
+    public class ScriptableGraphView : GraphView
     {
         public ScriptableGraph Graph { get; private set; }
         private static Dictionary<Type, List<NodeAttributeComposition>> cachedNodeTypes = new();
@@ -34,12 +34,12 @@ namespace Contracts.Scripting.Graph
             
             foreach (var node in Graph.Nodes)
             {
-                CreateNode(node);
+                LoadNode(node);
             }
             
             foreach (var edge in Graph.Edges)
             {
-                CreateEdge(edge);
+                LoadEdge(edge);
             }
 
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
@@ -116,22 +116,39 @@ namespace Contracts.Scripting.Graph
             return compatiblePorts;
         }
 
-        private ScriptableGraphNode CreateNode(NodeSaveData nodeSave)
-        {
-            Debug.Log(nodeSave.Type);
-            return CreateNode(Type.GetType(nodeSave.Type), nodeSave.Position, nodeSave.Guid);
-        }
-
         private ScriptableGraphNode CreateNode(Type type, Rect position, string guid)
         {
             var node = (ScriptableGraphNode)Activator.CreateInstance(type);
-            node.SetPosition(position);
             node.Guid = guid;
+            node.SetPosition(position);
             AddElement(node);
             return node;
         }
 
-        private void CreateEdge(EdgeSaveData edgeSave)
+        private ScriptableGraphNode LoadNode(NodeSaveData nodeSave)
+        {
+            var nodeType = Type.GetType(nodeSave.Type);
+            var node = CreateNode(nodeType, nodeSave.Position, nodeSave.Guid);
+            var slots = nodeType.GetFields().Where(field => field.GetCustomAttribute<NodeSlotAttribute>() != null);
+            foreach (var slot in slots)
+            {
+                var slotValue = nodeSave.Slots[slot.Name];
+                if (slotValue != null)
+                {
+                    var slotAttribute = slot.GetCustomAttribute<NodeSlotAttribute>();
+                    slot.SetValue(node, slotValue);
+
+                    var objectField = node.GetSlot(slot.Name);
+                    Debug.Log($"object field: {objectField != null}, name: {slot.Name}, {node.extensionContainer.childCount}");
+                    objectField.value = slotValue;
+
+                    Debug.Log($"Loading Slot: {slot.Name} = {slotValue}");
+                }
+            }
+            return node;
+        }
+
+        private void LoadEdge(EdgeSaveData edgeSave)
         {
             var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
             var outputPort = outputNode.GetOutputPort(edgeSave.OutputPortName);

@@ -4,6 +4,7 @@ namespace Contracts.Scripting.Graph
 {
     [NodeMenu("Career Progression")]
     [NodeContext(typeof(CareerGraph))]
+    [NodePresentOnCreation]
     public class CareerProgressionNode : ScriptableGraphNode
     {
         [NodeInput(Port.Capacity.Multi)]

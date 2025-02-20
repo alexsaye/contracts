@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor.Experimental.GraphView;
+using System.Linq;
+using System.Reflection;
 
 namespace Contracts.Scripting.Graph
 {
@@ -11,12 +13,22 @@ namespace Contracts.Scripting.Graph
         public readonly string Type;
         public readonly string Guid;
         public readonly Rect Position;
+        public readonly Dictionary<string, UnityEngine.Object> Slots;
 
         public NodeSaveData(ScriptableGraphNode node)
         {
+            var nodeType = node.GetType();
             Guid = node.Guid;
-            Type = node.GetType().AssemblyQualifiedName;
+            Type = nodeType.AssemblyQualifiedName;
             Position = node.GetPosition();
+            Slots = nodeType.GetFields()
+                .Where(field => field.GetCustomAttribute<NodeSlotAttribute>() != null)
+                .ToDictionary(field => field.Name, field => (UnityEngine.Object)field.GetValue(node));
+
+            foreach (var slot in Slots)
+            {
+                Debug.Log($"Save Slot: {slot.Key} = {slot.Value}");
+            }
         }
 
         public NodeSaveData(Type type, Vector2 position)
@@ -24,6 +36,9 @@ namespace Contracts.Scripting.Graph
             Guid = System.Guid.NewGuid().ToString();
             Type = type.AssemblyQualifiedName;
             Position = new Rect(position, Vector2.zero);
+            Slots = type.GetFields()
+                .Where(field => field.GetCustomAttribute<NodeSlotAttribute>() != null)
+                .ToDictionary(field => field.Name, field => (UnityEngine.Object)null);
         }
     }
 
