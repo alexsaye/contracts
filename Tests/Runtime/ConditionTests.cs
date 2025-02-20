@@ -11,7 +11,7 @@ namespace Contracts.Tests
             var condition = subject.AsCondition();
 
             var satisfied = true;
-            condition.State += (sender, e) => satisfied = e.CurrentState;
+            condition.StateUpdated += (sender, e) => satisfied = e.State;
 
             Assert.IsFalse(satisfied, "Should be dissatisfied initially.");
         }
@@ -23,7 +23,7 @@ namespace Contracts.Tests
             var condition = subject.AsCondition();
 
             var satisfied = false;
-            condition.State += (sender, e) => satisfied = e.CurrentState;
+            condition.StateUpdated += (sender, e) => satisfied = e.State;
 
             subject.Satisfy();
             Assert.IsTrue(satisfied, "Should be satisfied after event.");
@@ -36,7 +36,7 @@ namespace Contracts.Tests
             var condition = subject.AsCondition();
 
             var satisfied = true;
-            condition.State += (sender, e) => satisfied = e.CurrentState;
+            condition.StateUpdated += (sender, e) => satisfied = e.State;
 
             subject.Dissatisfy();
             Assert.IsFalse(satisfied, "Should be dissatisfied after event.");
@@ -49,10 +49,10 @@ namespace Contracts.Tests
             var condition = subject.AsCondition();
 
             var satisfied = false;
-            void handleState(object sender, StateEventArgs<bool> e) => satisfied = e.CurrentState;
+            void handleState(object sender, StateEventArgs<bool> e) => satisfied = e.State;
 
-            condition.State += handleState;
-            condition.State -= handleState;
+            condition.StateUpdated += handleState;
+            condition.StateUpdated -= handleState;
 
             subject.Satisfy();
             Assert.IsFalse(satisfied, "Should not change state after unsubscribe.");
@@ -66,7 +66,7 @@ namespace Contracts.Tests
             var condition = Condition.All(subjectA.AsCondition(), subjectB.AsCondition());
 
             var satisfied = true;
-            condition.State += (sender, e) => satisfied = e.CurrentState;
+            condition.StateUpdated += (sender, e) => satisfied = e.State;
 
             subjectA.Satisfy();
             Assert.IsFalse(satisfied, "Should not be satisfied when only A is satisfied.");
@@ -83,7 +83,7 @@ namespace Contracts.Tests
             var condition = Condition.Any(subjectA.AsCondition(), subjectB.AsCondition());
 
             var satisfied = false;
-            condition.State += (sender, e) => satisfied = e.CurrentState;
+            condition.StateUpdated += (sender, e) => satisfied = e.State;
 
             subjectA.Satisfy();
             Assert.IsTrue(satisfied, "Should be satisfied when A is satisfied.");

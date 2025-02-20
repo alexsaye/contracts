@@ -23,7 +23,7 @@ namespace Contracts
         {
             pending.Add(progression);
             Issued?.Invoke(this, new IssuedEventArgs(progression.Contract));
-            progression.State += IssueNext;
+            progression.StateUpdated += IssueNext;
         }
 
         public void Issue(IContract contract)
@@ -34,12 +34,12 @@ namespace Contracts
         private void IssueNext(object sender, StateEventArgs<IEnumerable<ICareerProgression>> e)
         {
             var progression = (ICareerProgression)sender;
-            if (progression.Contract.CurrentState != ContractState.Pending)
+            if (progression.Contract.State != ContractState.Pending)
             {
                 // Remove the no longer pending progression and issue its next progressions.
                 pending.Remove(progression);
-                progression.State -= IssueNext;
-                foreach (var next in e.CurrentState)
+                progression.StateUpdated -= IssueNext;
+                foreach (var next in e.State)
                 {
                     Issue(next);
                 }

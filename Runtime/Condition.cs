@@ -23,7 +23,7 @@ namespace Contracts
         /// </summary>
         public static ICondition Any(IEnumerable<ICondition> subconditions)
         {
-            return Composite(() => subconditions.Any(subcondition => subcondition.CurrentState), subconditions);
+            return Composite(() => subconditions.Any(subcondition => subcondition.State), subconditions);
         }
 
         /// <summary>
@@ -39,7 +39,7 @@ namespace Contracts
         /// </summary>
         public static ICondition All(IEnumerable<ICondition> subconditions)
         {
-            return Composite(() => subconditions.All(subcondition => subcondition.CurrentState), subconditions);
+            return Composite(() => subconditions.All(subcondition => subcondition.State), subconditions);
         }
 
         /// <summary>
@@ -61,14 +61,14 @@ namespace Contracts
                 {
                     foreach (var subcondition in subconditions)
                     {
-                        subcondition.State += condition.Update;
+                        subcondition.StateUpdated += condition.Update;
                     }
                 },
                 unbind: condition =>
                 {
                     foreach (var subcondition in subconditions)
                     {
-                        subcondition.State -= condition.Update;
+                        subcondition.StateUpdated -= condition.Update;
                     }
                 }
             );
@@ -96,12 +96,12 @@ namespace Contracts
             this.assert = assert;
             this.bind = bind;
             this.unbind = unbind;
-            Watched += HandleWatched;
+            WatchedUpdated += HandleWatched;
         }
 
         private void HandleWatched(object sender, WatchedEventArgs e)
         {
-            if (e.IsWatched)
+            if (e.Watched)
             {
                 // Bind to allow automatic updates while watched.
                 bind(this);
@@ -118,7 +118,7 @@ namespace Contracts
 
         public void Update()
         {
-            CurrentState = assert();
+            State = assert();
         }
 
         public void Update(object sender, EventArgs e)

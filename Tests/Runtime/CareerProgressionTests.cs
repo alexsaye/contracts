@@ -12,7 +12,7 @@ namespace Contracts.Tests
             var promotionContract = new Contract(Condition.Never);
             var demotionContract = new Contract(Condition.Never);
             var progression = new CareerProgression(contract, new ICareerProgression[] { new CareerProgression(promotionContract) }, new ICareerProgression[] { new CareerProgression(demotionContract) });
-            Assert.AreEqual(0, progression.CurrentState.Count(), "Has not progressed.");
+            Assert.AreEqual(0, progression.State.Count(), "Has not progressed.");
         }
 
         [Test]
@@ -22,8 +22,8 @@ namespace Contracts.Tests
             var promotionContract = new Contract(Condition.Never);
             var demotionContract = new Contract(Condition.Never);
             var progression = new CareerProgression(contract, new ICareerProgression[] { new CareerProgression(promotionContract) }, new ICareerProgression[] { new CareerProgression(demotionContract) });
-            Assert.AreEqual(1, progression.CurrentState.Count(), "Has a single progression.");
-            Assert.AreSame(promotionContract, progression.CurrentState.First().Contract, "Has progressed to the promotion.");
+            Assert.AreEqual(1, progression.State.Count(), "Has a single progression.");
+            Assert.AreSame(promotionContract, progression.State.First().Contract, "Has progressed to the promotion.");
         }
 
         [Test]
@@ -33,8 +33,8 @@ namespace Contracts.Tests
             var promotionContract = new Contract(Condition.Never);
             var demotionContract = new Contract(Condition.Never);
             var progression = new CareerProgression(contract, new ICareerProgression[] { new CareerProgression(promotionContract) }, new ICareerProgression[] { new CareerProgression(demotionContract) });
-            Assert.AreEqual(1, progression.CurrentState.Count(), "Has a single progression.");
-            Assert.AreSame(demotionContract, progression.CurrentState.First().Contract, "Has progressed to the demotion.");
+            Assert.AreEqual(1, progression.State.Count(), "Has a single progression.");
+            Assert.AreSame(demotionContract, progression.State.First().Contract, "Has progressed to the demotion.");
         }
     }
 }

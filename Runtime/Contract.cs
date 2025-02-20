@@ -15,60 +15,60 @@ namespace Contracts
             : this(fulfilling, Condition.Never) { }
 
         public Contract(ICondition fulfilling, ICondition rejecting)
-            : base(rejecting.CurrentState
+            : base(rejecting.State
                   ? ContractState.Rejected
-                  : fulfilling.CurrentState
+                  : fulfilling.State
                     ? ContractState.Fulfilled
                     : ContractState.Pending)
         {
             this.fulfilling = fulfilling;
             this.rejecting = rejecting;
-            Watched += HandleWatched;
+            WatchedUpdated += HandleWatched;
         }
 
         private void HandleWatched(object sender, WatchedEventArgs e)
         {
-            if (e.IsWatched)
+            if (e.Watched)
             {
                 // Subscribe to both conditions, with rejection taking precedence.
-                Rejecting.State += HandleRejectingState;
-                Fulfilling.State += HandleFulfillingState;
+                Rejecting.StateUpdated += HandleRejectingState;
+                Fulfilling.StateUpdated += HandleFulfillingState;
             }
             else
             {
-                Rejecting.State -= HandleRejectingState;
-                Fulfilling.State -= HandleFulfillingState;
+                Rejecting.StateUpdated -= HandleRejectingState;
+                Fulfilling.StateUpdated -= HandleFulfillingState;
             }
         }
 
         private void HandleFulfillingState(object sender, StateEventArgs<bool> e)
         {
-            if (e.CurrentState)
+            if (e.State)
             {
                 // Automatically unsubscribe from the conditions if the contract is fulfilled.
-                Fulfilling.State -= HandleFulfillingState;
-                Rejecting.State -= HandleRejectingState;
+                Fulfilling.StateUpdated -= HandleFulfillingState;
+                Rejecting.StateUpdated -= HandleRejectingState;
 
                 // Fulfill the contract if it has not already been rejected.
-                if (CurrentState == ContractState.Pending)
+                if (State == ContractState.Pending)
                 {
-                    CurrentState = ContractState.Fulfilled;
+                    State = ContractState.Fulfilled;
                 }
             }
         }
 
         private void HandleRejectingState(object sender, StateEventArgs<bool> e)
         {
-            if (e.CurrentState)
+            if (e.State)
             {
                 // Automatically unsubscribe from the conditions if the contract is rejected.
-                Rejecting.State -= HandleRejectingState;
-                Fulfilling.State -= HandleFulfillingState;
+                Rejecting.StateUpdated -= HandleRejectingState;
+                Fulfilling.StateUpdated -= HandleFulfillingState;
 
                 // Reject the contract if it has not already been fulfilled.
-                if (CurrentState == ContractState.Pending)
+                if (State == ContractState.Pending)
                 {
-                    CurrentState = ContractState.Rejected;
+                    State = ContractState.Rejected;
                 }
             }
         }

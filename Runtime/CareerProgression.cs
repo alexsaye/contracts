@@ -15,7 +15,7 @@ namespace Contracts
         private IEnumerable<ICareerProgression> nextOnRejected;
 
         public CareerProgression(IContract contract, IEnumerable<ICareerProgression> nextOnFulfilled, IEnumerable<ICareerProgression> nextOnRejected)
-            : base(contract.CurrentState switch
+            : base(contract.State switch
             {
                 ContractState.Fulfilled => nextOnFulfilled,
                 ContractState.Rejected => nextOnRejected,
@@ -25,7 +25,7 @@ namespace Contracts
             Contract = contract;
             this.nextOnFulfilled = nextOnFulfilled;
             this.nextOnRejected = nextOnRejected;
-            Watched += HandleWatched;
+            WatchedUpdated += HandleWatched;
         }
 
         public CareerProgression(IContract contract)
@@ -33,26 +33,26 @@ namespace Contracts
 
         private void HandleWatched(object sender, WatchedEventArgs e)
         {
-            if (e.IsWatched)
+            if (e.Watched)
             {
-                Contract.State += HandleContractState;
+                Contract.StateUpdated += HandleContractState;
             }
             else
             {
-                Contract.State -= HandleContractState;
+                Contract.StateUpdated -= HandleContractState;
             }
         }
 
         private void HandleContractState(object sender, StateEventArgs<ContractState> e)
         {
             // If the contract is no longer pending, fully enumerate the next progressions for the current state.
-            if (e.CurrentState == ContractState.Fulfilled)
+            if (e.State == ContractState.Fulfilled)
             {
-                CurrentState = nextOnFulfilled.ToList();
+                State = nextOnFulfilled.ToList();
             }
-            else if (e.CurrentState == ContractState.Rejected)
+            else if (e.State == ContractState.Rejected)
             {
-                CurrentState = nextOnRejected.ToList();
+                State = nextOnRejected.ToList();
             }
         }
     }

@@ -9,10 +9,10 @@ namespace Contracts
     /// <typeparam name="T">The type of the state.</typeparam>
     public class Watchable<T> : ReadOnlyWatchable<T>, IWatchable<T>
     {
-        public new T CurrentState
+        public new T State
         {
-            get => base.CurrentState;
-            set => base.CurrentState = value;
+            get => base.State;
+            set => base.State = value;
         }
 
         public Watchable(T initialState) : base(initialState) { }
@@ -26,23 +26,23 @@ namespace Contracts
     /// <typeparam name="T">The type of the state.</typeparam>
     public class ReadOnlyWatchable<T> : IReadOnlyWatchable<T>
     {
-        private T currentState;
-        public T CurrentState
+        private T state;
+        public T State
         {
-            get => currentState;
+            get => state;
             protected set
             {
                 // If the state has changed, push the state.
-                if (currentState == null && value != null || !currentState.Equals(value))
+                if (state == null && value != null || !state.Equals(value))
                 {
-                    currentState = value;
-                    state?.Invoke(this, new StateEventArgs<T>(currentState));
+                    state = value;
+                    stateUpdated?.Invoke(this, new StateEventArgs<T>(state));
                 }
             }
         }
 
-        private event EventHandler<StateEventArgs<T>> state;
-        public event EventHandler<StateEventArgs<T>> State
+        private event EventHandler<StateEventArgs<T>> stateUpdated;
+        public event EventHandler<StateEventArgs<T>> StateUpdated
         {
             add
             {
@@ -51,12 +51,12 @@ namespace Contracts
                 {
                     // Add and subscribe the watcher.
                     watchers.Add(value);
-                    state += value;
+                    stateUpdated += value;
 
                     // If this is the first watcher, push an watched event.
                     if (watchers.Count == 1)
                     {
-                        watched?.Invoke(this, new WatchedEventArgs(true));
+                        watchedUpdated?.Invoke(this, new WatchedEventArgs(true));
 
                         // Check that the watcher didn't stop watching due to the above event.
                         if (!watchers.Contains(value))
@@ -66,7 +66,7 @@ namespace Contracts
                     }
 
                     // Push the state to the watcher.
-                    value(this, new StateEventArgs<T>(CurrentState));
+                    value(this, new StateEventArgs<T>(State));
                 }
             }
             remove
@@ -76,39 +76,39 @@ namespace Contracts
                 {
                     // Remove and unsubscribe the watcher.
                     watchers.Remove(value);
-                    state -= value;
+                    stateUpdated -= value;
 
                     // If this is the last watcher, push a not watched event.
                     if (watchers.Count == 0)
                     {
-                        watched?.Invoke(this, new WatchedEventArgs(false));
+                        watchedUpdated?.Invoke(this, new WatchedEventArgs(false));
                     }
                 }
             }
         }
 
         private HashSet<EventHandler<StateEventArgs<T>>> watchers = new();
-        public bool IsWatched => watchers.Count > 0;
+        public bool Watched => watchers.Count > 0;
 
-        private event EventHandler<WatchedEventArgs> watched;
-        public event EventHandler<WatchedEventArgs> Watched
+        private event EventHandler<WatchedEventArgs> watchedUpdated;
+        public event EventHandler<WatchedEventArgs> WatchedUpdated
         {
             add
             {
-                watched += value;
+                watchedUpdated += value;
 
                 // Push whether the state is being watched to the subscriber.
-                value(this, new WatchedEventArgs(IsWatched));
+                value(this, new WatchedEventArgs(Watched));
             }
             remove
             {
-                watched -= value;
+                watchedUpdated -= value;
             }
         }
 
         public ReadOnlyWatchable(T initialState)
         {
-            currentState = initialState;
+            state = initialState;
         }
 
         public ReadOnlyWatchable() : this(default) { }
@@ -120,7 +120,7 @@ namespace Contracts
     /// <typeparam name="T">The type of the state.</typeparam>
     public interface IWatchable<T> : IReadOnlyWatchable<T>
     {
-        new T CurrentState { get; set; }
+        new T State { get; set; }
     }
 
     /// <summary>
@@ -132,22 +132,22 @@ namespace Contracts
         /// <summary>
         /// The current state.
         /// </summary>
-        T CurrentState { get; }
+        T State { get; }
 
         /// <summary>
         /// Raised to push the state.
         /// </summary>
-        event EventHandler<StateEventArgs<T>> State;
+        event EventHandler<StateEventArgs<T>> StateUpdated;
 
         /// <summary>
         /// Whether the watchable state is being watched.
         /// </summary>
-        bool IsWatched { get; }
+        bool Watched { get; }
 
         /// <summary>
         /// Raised to push whether the watchable state is being watched.
         /// </summary>
-        event EventHandler<WatchedEventArgs> Watched;
+        event EventHandler<WatchedEventArgs> WatchedUpdated;
     }
 
     /// <summary>
@@ -155,11 +155,11 @@ namespace Contracts
     /// </summary>
     public class WatchedEventArgs : EventArgs
     {
-        public bool IsWatched { get; }
+        public bool Watched { get; }
 
         public WatchedEventArgs(bool watched)
         {
-            IsWatched = watched;
+            Watched = watched;
         }
     }
 
@@ -169,11 +169,11 @@ namespace Contracts
     /// <typeparam name="T">The type of the state.</typeparam>
     public class StateEventArgs<T> : EventArgs
     {
-        public T CurrentState { get; }
+        public T State { get; }
 
-        public StateEventArgs(T currentState)
+        public StateEventArgs(T state)
         {
-            CurrentState = currentState;
+            State = state;
         }
     }
 }
