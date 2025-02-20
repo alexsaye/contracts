@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Saye.Contracts
+namespace Contracts
 {
     /// <summary>
     /// A route of career progression via a contract.

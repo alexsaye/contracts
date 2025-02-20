@@ -1,4 +1,4 @@
-namespace Saye.Contracts
+namespace Contracts
 {
     /// <summary>
     /// A promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).

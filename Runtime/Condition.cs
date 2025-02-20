@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Saye.Contracts
+namespace Contracts
 {
     /// <summary>
     /// A condition that can be either satisfied or dissatisfied.

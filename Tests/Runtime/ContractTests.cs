@@ -1,6 +1,6 @@
 using NUnit.Framework;
 
-namespace Saye.Contracts.Tests
+namespace Contracts.Tests
 {
     public class ContractTests
     {

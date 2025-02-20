@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Saye.Contracts
+namespace Contracts
 {
     /// <summary>
     /// Provides watchable state with events which immediately push on subscription.

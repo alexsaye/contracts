@@ -2,7 +2,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Saye.Contracts.Scripting
+namespace Contracts.Scripting
 {
     [CreateAssetMenu(menuName = "Contracts/Conditions/Composite/Any")]
     public class ScriptableAnyCondition : ScriptableCondition

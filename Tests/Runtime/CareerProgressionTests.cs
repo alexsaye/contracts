@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using System.Linq;
 
-namespace Saye.Contracts.Tests
+namespace Contracts.Tests
 {
     public class CareerProgressionTests
     {

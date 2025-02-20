@@ -1,6 +1,6 @@
 {
     "name": "Contracts.Tests",
-    "rootNamespace": "Saye.Contracts.Tests",
+    "rootNamespace": "Contracts.Tests",
     "references": [
         "Contracts"
     ],

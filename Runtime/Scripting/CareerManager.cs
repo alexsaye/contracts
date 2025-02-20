@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Saye.Contracts.Scripting
+namespace Contracts.Scripting
 {
     /// <summary>
     /// Manages a career in which contracts are issued through the progression of other contracts.

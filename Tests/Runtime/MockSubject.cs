@@ -1,6 +1,6 @@
 using System;
 
-namespace Saye.Contracts.Tests
+namespace Contracts.Tests
 {
     public class MockSubject
     {

@@ -3,7 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Saye.Contracts.Scripting
+namespace Contracts.Scripting
 {
     [CreateAssetMenu(fileName = "New Contract", menuName = "Contracts/Blank Contract")]
     public class ScriptableContract : ScriptableObject

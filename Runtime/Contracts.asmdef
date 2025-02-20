@@ -1,6 +1,6 @@
 {
     "name": "Contracts",
-    "rootNamespace": "Saye.Contracts",
+    "rootNamespace": "Contracts",
     "references": [],
     "includePlatforms": [],
     "excludePlatforms": [],

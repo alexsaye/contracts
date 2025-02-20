@@ -2,7 +2,7 @@ using NUnit.Framework;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Saye.Contracts.Tests
+namespace Contracts.Tests
 {
     public class CareerTests
     {
