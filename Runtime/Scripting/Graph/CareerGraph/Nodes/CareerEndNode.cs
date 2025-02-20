@@ -6,8 +6,8 @@ namespace Contracts.Scripting.Graph
     [NodePresentOnCreation(x: 200, y: 0)]
     public class CareerEndNode : ScriptableGraphNode
     {
-        [NodeInput("From", Port.Capacity.Multi)]
-        public ScriptableGraphNode From;
+        [NodeInput(Port.Capacity.Multi)]
+        public ScriptableGraphNode Retire;
 
         public CareerEndNode() : base("End")
         {

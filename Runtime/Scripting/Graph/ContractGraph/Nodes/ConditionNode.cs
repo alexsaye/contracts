@@ -7,10 +7,10 @@ namespace Contracts.Scripting.Graph
     [NodeContext(typeof(ContractGraph))]
     public class ConditionNode : ScriptableGraphNode
     {
-        [NodeOutput("Satisfied", Port.Capacity.Single)]
+        [NodeOutput(Port.Capacity.Single)]
         public ConditionNode Satisfied;
 
-        [NodeOutput("Dissatisfied", Port.Capacity.Single)]
+        [NodeOutput(Port.Capacity.Single)]
         public ConditionNode Dissatisfied;
 
         public ConditionNode() : base("Condition", new Color(0.3f, 0.3f, 0.6f))

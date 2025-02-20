@@ -6,10 +6,10 @@ namespace Contracts.Scripting.Graph
     [NodePresentOnCreation]
     public class ContractNode : ScriptableGraphNode
     {
-        [NodeInput("Fulfill", Port.Capacity.Single)]
+        [NodeInput(Port.Capacity.Single)]
         public ConditionNode Fulfill;
 
-        [NodeInput("Reject", Port.Capacity.Single)]
+        [NodeInput(Port.Capacity.Single)]
         public ConditionNode Reject;
 
         public ContractNode() : base("Contract")

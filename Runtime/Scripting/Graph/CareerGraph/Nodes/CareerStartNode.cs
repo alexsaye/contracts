@@ -7,8 +7,8 @@ namespace Contracts.Scripting.Graph
     [NodePresentOnCreation(x: -200, y: 0)]
     public class CareerStartNode : ScriptableGraphNode
     {
-        [NodeOutput("To", Port.Capacity.Multi)]
-        public ScriptableGraphNode To;
+        [NodeOutput(Port.Capacity.Multi)]
+        public ScriptableGraphNode Hire;
 
         public CareerStartNode() : base("Start")
         {

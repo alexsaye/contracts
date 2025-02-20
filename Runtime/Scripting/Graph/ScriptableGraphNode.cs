@@ -49,11 +49,11 @@ namespace Contracts.Scripting.Graph
                 direction: Direction.Input,
                 capacity: attribute.Capacity,
                 type: field.FieldType);
-            port.portName = attribute.Name;
+            port.portName = field.Name;
 
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
 
-            inputPorts.Add(attribute.Name, port);
+            inputPorts.Add(field.Name, port);
             inputContainer.Add(port);
         }
 
@@ -64,11 +64,11 @@ namespace Contracts.Scripting.Graph
                 direction: Direction.Output,
                 capacity: attribute.Capacity,
                 type: field.FieldType);
-            port.portName = attribute.Name;
+            port.portName = field.Name;
 
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
 
-            outputPorts.Add(attribute.Name, port);
+            outputPorts.Add(field.Name, port);
             outputContainer.Add(port);
         }
 

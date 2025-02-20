@@ -44,12 +44,10 @@ namespace Contracts.Scripting.Graph
     [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
     public class NodeInputAttribute : Attribute
     {
-        public string Name { get; }
         public Port.Capacity Capacity { get; }
 
-        public NodeInputAttribute(string name, Port.Capacity capacity = Port.Capacity.Single)
+        public NodeInputAttribute(Port.Capacity capacity = Port.Capacity.Single)
         {
-            Name = name;
             Capacity = capacity;
         }
     }
@@ -57,12 +55,10 @@ namespace Contracts.Scripting.Graph
     [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
     public class NodeOutputAttribute : Attribute
     {
-        public string Name { get; }
         public Port.Capacity Capacity { get; }
 
-        public NodeOutputAttribute(string name, Port.Capacity capacity = Port.Capacity.Multi)
+        public NodeOutputAttribute(Port.Capacity capacity = Port.Capacity.Multi)
         {
-            Name = name;
             Capacity = capacity;
         }
     }

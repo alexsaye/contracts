@@ -6,13 +6,13 @@ namespace Contracts.Scripting.Graph
     [NodeContext(typeof(CareerGraph))]
     public class CareerProgressionNode : ScriptableGraphNode
     {
-        [NodeInput("From", Port.Capacity.Multi)]
+        [NodeInput(Port.Capacity.Multi)]
         public ScriptableGraphNode From;
 
-        [NodeOutput("Fulfill", Port.Capacity.Single)]
+        [NodeOutput(Port.Capacity.Single)]
         public ScriptableGraphNode Fulfill;
 
-        [NodeOutput("Reject", Port.Capacity.Single)]
+        [NodeOutput(Port.Capacity.Single)]
         public ScriptableGraphNode Reject;
 
         public CareerProgressionNode() : base("Career Progression")
