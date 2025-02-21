@@ -22,7 +22,7 @@ namespace Contracts.Scripting.Graph
             Type = nodeType.AssemblyQualifiedName;
             Position = node.GetPosition();
             Slots = nodeType.GetFields()
-                .Where(field => field.GetCustomAttribute<NodeSlotAttribute>() != null)
+                .Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null)
                 .ToDictionary(field => field.Name, field => (UnityEngine.Object)field.GetValue(node));
 
             foreach (var slot in Slots)
@@ -37,7 +37,7 @@ namespace Contracts.Scripting.Graph
             Type = type.AssemblyQualifiedName;
             Position = new Rect(position, Vector2.zero);
             Slots = type.GetFields()
-                .Where(field => field.GetCustomAttribute<NodeSlotAttribute>() != null)
+                .Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null)
                 .ToDictionary(field => field.Name, field => (UnityEngine.Object)null);
         }
     }

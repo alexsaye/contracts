@@ -16,7 +16,7 @@ namespace Contracts.Scripting.Graph
         [NodeOutput(Port.Capacity.Single)]
         public ScriptableGraphNode Reject;
 
-        [NodeSlot]
+        [NodeField]
         public ContractGraph Contract;
 
         public CareerProgressionNode() : base("Career Progression")

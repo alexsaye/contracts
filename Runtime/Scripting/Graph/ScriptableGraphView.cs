@@ -129,13 +129,13 @@ namespace Contracts.Scripting.Graph
         {
             var nodeType = Type.GetType(nodeSave.Type);
             var node = CreateNode(nodeType, nodeSave.Position, nodeSave.Guid);
-            var slots = nodeType.GetFields().Where(field => field.GetCustomAttribute<NodeSlotAttribute>() != null);
+            var slots = nodeType.GetFields().Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null);
             foreach (var slot in slots)
             {
                 var slotValue = nodeSave.Slots[slot.Name];
                 if (slotValue != null)
                 {
-                    var slotAttribute = slot.GetCustomAttribute<NodeSlotAttribute>();
+                    var slotAttribute = slot.GetCustomAttribute<NodeFieldAttribute>();
                     slot.SetValue(node, slotValue);
 
                     var objectField = node.GetSlot(slot.Name);

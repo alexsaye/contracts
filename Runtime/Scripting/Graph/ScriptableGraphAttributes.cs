@@ -64,9 +64,9 @@ namespace Contracts.Scripting.Graph
     }
 
     [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
-    public class NodeSlotAttribute : Attribute
+    public class NodeFieldAttribute : Attribute
     {
-        public NodeSlotAttribute()
+        public NodeFieldAttribute()
         {
         }
     }

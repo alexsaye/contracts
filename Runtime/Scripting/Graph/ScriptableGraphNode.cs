@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
 using UnityEditor.Experimental.GraphView;
 using System.Reflection;
-using UnityEngine.UIElements;
-using System.Collections.Generic;
+using System;
 using UnityEditor.Search;
+using UnityEngine.UIElements;
 
 namespace Contracts.Scripting.Graph
 {
@@ -20,25 +20,28 @@ namespace Contracts.Scripting.Graph
                 titleContainer.style.backgroundColor = new StyleColor(titleBarColor.Value);
             }
 
-            var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            foreach (var field in fields)
+            var fieldInfos = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var fieldInfo in fieldInfos)
             {
-                var input = field.GetCustomAttribute<NodeInputAttribute>();
-                if (input != null)
+                var inputAttribute = fieldInfo.GetCustomAttribute<NodeInputAttribute>();
+                if (inputAttribute != null)
                 {
-                    CreateInputPort(field, input);
+                    var port = CreateInputPort(fieldInfo, inputAttribute);
+                    inputContainer.Add(port);
                 }
 
-                var output = field.GetCustomAttribute<NodeOutputAttribute>();
-                if (output != null)
+                var outputAttribute = fieldInfo.GetCustomAttribute<NodeOutputAttribute>();
+                if (outputAttribute != null)
                 {
-                    CreateOutputPort(field, output);
+                    var port = CreateOutputPort(fieldInfo, outputAttribute);
+                    outputContainer.Add(port);
                 }
 
-                var slot = field.GetCustomAttribute<NodeSlotAttribute>();
-                if (slot != null)
+                var fieldAttribute = fieldInfo.GetCustomAttribute<NodeFieldAttribute>();
+                if (fieldAttribute != null)
                 {
-                    CreateSlot(field);
+                    var field = CreateField(fieldInfo);
+                    extensionContainer.Add(field);
                 }
             }
 
@@ -46,47 +49,60 @@ namespace Contracts.Scripting.Graph
             RefreshExpandedState();
         }
 
-        private void CreateInputPort(FieldInfo field, NodeInputAttribute attribute)
+        private Port CreateInputPort(FieldInfo fieldInfo, NodeInputAttribute attribute)
         {
             var port = Port.Create<Edge>(
                 orientation: Orientation.Horizontal,
                 direction: Direction.Input,
                 capacity: attribute.Capacity,
-                type: field.FieldType);
-            port.portName = field.Name;
-            port.name = field.Name;
-
+                type: fieldInfo.FieldType);
+            port.portName = fieldInfo.Name;
+            port.name = fieldInfo.Name;
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
-
-            inputContainer.Add(port);
+            return port;
         }
 
-        private void CreateOutputPort(FieldInfo field, NodeOutputAttribute attribute)
+        private Port CreateOutputPort(FieldInfo fieldInfo, NodeOutputAttribute attribute)
         {
             var port = Port.Create<Edge>(
                 orientation: Orientation.Horizontal,
                 direction: Direction.Output,
                 capacity: attribute.Capacity,
-                type: field.FieldType);
-            port.portName = field.Name;
-            port.name = field.Name;
-
+                type: fieldInfo.FieldType);
+            port.portName = fieldInfo.Name;
+            port.name = fieldInfo.Name;
             port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
-
-            outputContainer.Add(port);
+            return port;
         }
 
-        private void CreateSlot(FieldInfo field)
+        private VisualElement CreateField(FieldInfo fieldInfo) => fieldInfo.FieldType switch
         {
-            var slot = new ObjectField()
+            Type type when type == typeof(bool) => BindField(fieldInfo, new Toggle()),
+            Type type when type == typeof(int) => BindField(fieldInfo, new IntegerField()),
+            Type type when type == typeof(float) => BindField(fieldInfo, new FloatField()),
+            Type type when type == typeof(double) => BindField(fieldInfo, new DoubleField()),
+            Type type when type == typeof(string) => BindField(fieldInfo, new TextField()),
+            Type type when type == typeof(Enum) => BindField(fieldInfo, new EnumField()),
+            Type type when type == typeof(Vector2) => BindField(fieldInfo, new Vector2Field()),
+            Type type when type == typeof(Vector3) => BindField(fieldInfo, new Vector3Field()),
+            Type type when type == typeof(Vector4) => BindField(fieldInfo, new Vector4Field()),
+            Type type when type == typeof(Color) => BindField(fieldInfo, new UnityEditor.UIElements.ColorField()),
+            // Default to an ObjectField so we can at least see what weird type we're trying to bind (maybe throw here instead?)
+            _ => BindField(fieldInfo, new ObjectField
             {
-                objectType = field.FieldType,
-                bindingPath = field.Name,
+                objectType = fieldInfo.FieldType,
+                bindingPath = fieldInfo.Name,
                 searchContext = SearchService.CreateContext("Assets"),
-            };
-            slot.name = field.Name;
-            slot.RegisterValueChangedCallback((changeEvent) => field.SetValue(this, changeEvent.newValue));
-            extensionContainer.Add(slot);
+            })
+        };
+
+        // This only exists to make the above easier because of how awkward C# makes this (maybe I'm missing something?)
+        private BaseField<T> BindField<T>(FieldInfo fieldInfo, BaseField<T> field)
+        {
+            field.name = fieldInfo.Name;
+            field.label = fieldInfo.Name;
+            field.RegisterValueChangedCallback((changeEvent) => fieldInfo.SetValue(this, changeEvent.newValue));
+            return field;
         }
 
         public Port GetInputPort(string name)
