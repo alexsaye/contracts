@@ -1,64 +1,102 @@
 ﻿using System;
 using System.Collections.Generic;
-using UnityEngine;
-using UnityEditor.Experimental.GraphView;
 using System.Linq;
-using System.Reflection;
+using UnityEngine;
 
 namespace Contracts.Scripting.Graph
 {
     [Serializable]
     public class NodeSaveData
     {
-        public readonly string Type;
-        public readonly string Guid;
-        public readonly Rect Position;
-        public readonly Dictionary<string, UnityEngine.Object> Slots;
+        public string Type;
+        public string Guid;
+        public Rect Position;
+        public FieldSaveData[] Fields;
 
-        public NodeSaveData(ScriptableGraphNode node)
+        public NodeSaveData(string type, Rect position, string guid, Dictionary<string, object> fields)
         {
-            var nodeType = node.GetType();
-            Guid = node.Guid;
-            Type = nodeType.AssemblyQualifiedName;
-            Position = node.GetPosition();
-            Slots = nodeType.GetFields()
-                .Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null)
-                .ToDictionary(field => field.Name, field => (UnityEngine.Object)field.GetValue(node));
+            Guid = guid;
+            Type = type;
+            Position = position;
+            Fields = fields
+                .Where((pair) => pair.Value != null)
+                .Select((pair) => new FieldSaveData(pair.Key, pair.Value)).ToArray();
+        }
 
-            foreach (var slot in Slots)
+        public NodeSaveData(string type, Vector2 position)
+        {
+            Guid = System.Guid.NewGuid().ToString();
+            Type = type;
+            Position = new Rect(position, Vector2.zero);
+            Fields = new FieldSaveData[0];
+        }
+    }
+
+    [Serializable]
+    public class FieldSaveData
+    {
+        public string Name;
+        public string TypeName;
+        public UnityEngine.Object ValueObject;
+        public string ValuePrimitive;
+        public string ValueJson;
+
+        public FieldSaveData(string name, object value)
+        {
+            Name = name;
+            TypeName = value.GetType().AssemblyQualifiedName;
+
+            if (value is UnityEngine.Object unityObject)
             {
-                Debug.Log($"Save Slot: {slot.Key} = {slot.Value}");
+                ValueObject = unityObject;
+            }
+            else if (value.GetType().IsPrimitive || value.GetType().IsEnum)
+            {
+                ValuePrimitive = value.ToString();
+            }
+            else
+            {
+                ValueJson = JsonUtility.ToJson(value);
             }
         }
 
-        public NodeSaveData(Type type, Vector2 position)
+        public object GetValue()
         {
-            Guid = System.Guid.NewGuid().ToString();
-            Type = type.AssemblyQualifiedName;
-            Position = new Rect(position, Vector2.zero);
-            Slots = type.GetFields()
-                .Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null)
-                .ToDictionary(field => field.Name, field => (UnityEngine.Object)null);
+            if (ValueObject != null)
+            {
+                return ValueObject;
+            }
+
+            var type = Type.GetType(TypeName);
+
+            if (!string.IsNullOrEmpty(ValuePrimitive))
+            {
+                return type.GetMethod("Parse", new Type[] { typeof(string) }).Invoke(type, new object[] { ValuePrimitive });
+            }
+
+            if (!string.IsNullOrEmpty(ValueJson))
+            {
+                return JsonUtility.FromJson(ValueJson, type);
+            }
+
+            return null;
         }
     }
 
     [Serializable]
     public class EdgeSaveData
     {
-        public readonly string OutputNodeGuid;
-        public readonly string OutputPortName;
-        public readonly string InputNodeGuid;
-        public readonly string InputPortName;
+        public string OutputNodeGuid;
+        public string OutputPortName;
+        public string InputNodeGuid;
+        public string InputPortName;
 
-        public EdgeSaveData(Edge edge)
+        public EdgeSaveData(string outputNodeGuid, string outputPortName, string inputNodeGuid, string inputPortName)
         {
-            ScriptableGraphNode outputNode = edge.output.node as ScriptableGraphNode;
-            ScriptableGraphNode inputNode = edge.input.node as ScriptableGraphNode;
-
-            OutputNodeGuid = outputNode.Guid;
-            OutputPortName = edge.output.portName;
-            InputNodeGuid = inputNode.Guid;
-            InputPortName = edge.input.portName;
+            OutputNodeGuid = outputNodeGuid;
+            OutputPortName = outputPortName;
+            InputNodeGuid = inputNodeGuid;
+            InputPortName = inputPortName;
         }
     }
 }

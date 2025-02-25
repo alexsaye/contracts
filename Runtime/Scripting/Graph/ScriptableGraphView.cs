@@ -129,21 +129,22 @@ namespace Contracts.Scripting.Graph
         {
             var nodeType = Type.GetType(nodeSave.Type);
             var node = CreateNode(nodeType, nodeSave.Position, nodeSave.Guid);
-            var slots = nodeType.GetFields().Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null);
-            foreach (var slot in slots)
+
+            // Load all the saved fields into the node.
+            foreach (var fieldSave in nodeSave.Fields)
             {
-                var slotValue = nodeSave.Slots[slot.Name];
-                if (slotValue != null)
-                {
-                    var slotAttribute = slot.GetCustomAttribute<NodeFieldAttribute>();
-                    slot.SetValue(node, slotValue);
+                var field = nodeType.GetField(fieldSave.Name);
+                var fieldValue = fieldSave.GetValue();
 
-                    var objectField = node.GetSlot(slot.Name);
-                    Debug.Log($"object field: {objectField != null}, name: {slot.Name}, {node.extensionContainer.childCount}");
-                    objectField.value = slotValue;
+                // Set the value on the actual field.
+                field.SetValue(node, fieldValue);
 
-                    Debug.Log($"Loading Slot: {slot.Name} = {slotValue}");
-                }
+                // Set the value on the field's input.
+                var input = node.GetFieldInput(field.Name);
+                input
+                    .GetType()
+                    .GetProperty("value")
+                    .SetValue(input, fieldValue);
             }
             return node;
         }
@@ -151,10 +152,10 @@ namespace Contracts.Scripting.Graph
         private void LoadEdge(EdgeSaveData edgeSave)
         {
             var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
-            var outputPort = outputNode.GetOutputPort(edgeSave.OutputPortName);
+            var outputPort = outputNode.GetPortOutput(edgeSave.OutputPortName);
         
             var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
-            var inputPort = inputNode.GetInputPort(edgeSave.InputPortName);
+            var inputPort = inputNode.GetPortInput(edgeSave.InputPortName);
 
             var edge = new Edge
             {
@@ -170,7 +171,35 @@ namespace Contracts.Scripting.Graph
 
         public void SaveGraph()
         {
-            Graph.Save(graphElements);
+            Graph.Nodes.Clear();
+            Graph.Edges.Clear();
+
+            foreach (var element in graphElements)
+            {
+                if (element is ScriptableGraphNode node)
+                {
+                    var type = node.GetType();
+                    var fields = type.GetFields()
+                        .Where(field => field.GetCustomAttribute<NodeFieldAttribute>() != null)
+                        .ToDictionary(field => field.Name, (field) => field.GetValue(node));
+
+                    Graph.Nodes.Add(new NodeSaveData(
+                        type.AssemblyQualifiedName,
+                        node.GetPosition(),
+                        node.Guid,
+                        fields));
+                }
+                else if (element is Edge edge)
+                {
+                    var outputNode = edge.output.node as ScriptableGraphNode;
+                    var inputNode = edge.input.node as ScriptableGraphNode;
+                    Graph.Edges.Add(new EdgeSaveData(
+                        outputNode.Guid,
+                        edge.output.portName,
+                        inputNode.Guid,
+                        edge.input.portName));
+                }
+            }
         }
     }
 

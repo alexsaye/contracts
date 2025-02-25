@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-using UnityEditor.Experimental.GraphView;
 using System;
 using System.Linq;
 using System.Reflection;
@@ -35,25 +34,7 @@ namespace Contracts.Scripting.Graph
                 if (nodePresent)
                     continue;
 
-                Nodes.Add(new NodeSaveData(nodeType, attribute.Position));
-            }
-        }
-
-        public void Save(IEnumerable<GraphElement> elements)
-        {
-            Nodes.Clear();
-            Edges.Clear();
-
-            foreach (var element in elements)
-            {
-                if (element is ScriptableGraphNode node)
-                {
-                    Nodes.Add(new NodeSaveData(node));;
-                }
-                else if (element is Edge edge)
-                {
-                    Edges.Add(new EdgeSaveData(edge));
-                }
+                Nodes.Add(new NodeSaveData(nodeType.AssemblyQualifiedName, attribute.Position));
             }
         }
     }

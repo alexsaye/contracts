@@ -20,28 +20,28 @@ namespace Contracts.Scripting.Graph
                 titleContainer.style.backgroundColor = new StyleColor(titleBarColor.Value);
             }
 
-            var fieldInfos = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-            foreach (var fieldInfo in fieldInfos)
+            var fields = GetType().GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            foreach (var field in fields)
             {
-                var inputAttribute = fieldInfo.GetCustomAttribute<NodeInputAttribute>();
+                var inputAttribute = field.GetCustomAttribute<NodeInputAttribute>();
                 if (inputAttribute != null)
                 {
-                    var port = CreateInputPort(fieldInfo, inputAttribute);
+                    var port = CreatePortInput(field, inputAttribute);
                     inputContainer.Add(port);
                 }
 
-                var outputAttribute = fieldInfo.GetCustomAttribute<NodeOutputAttribute>();
+                var outputAttribute = field.GetCustomAttribute<NodeOutputAttribute>();
                 if (outputAttribute != null)
                 {
-                    var port = CreateOutputPort(fieldInfo, outputAttribute);
+                    var port = CreatePortOutput(field, outputAttribute);
                     outputContainer.Add(port);
                 }
 
-                var fieldAttribute = fieldInfo.GetCustomAttribute<NodeFieldAttribute>();
+                var fieldAttribute = field.GetCustomAttribute<NodeFieldAttribute>();
                 if (fieldAttribute != null)
                 {
-                    var field = CreateField(fieldInfo);
-                    extensionContainer.Add(field);
+                    var input = CreateFieldInput(field);
+                    extensionContainer.Add(input);
                 }
             }
 
@@ -49,75 +49,74 @@ namespace Contracts.Scripting.Graph
             RefreshExpandedState();
         }
 
-        private Port CreateInputPort(FieldInfo fieldInfo, NodeInputAttribute attribute)
+        private Port CreatePortInput(FieldInfo field, NodeInputAttribute attribute)
         {
-            var port = Port.Create<Edge>(
+            var input = Port.Create<Edge>(
                 orientation: Orientation.Horizontal,
                 direction: Direction.Input,
                 capacity: attribute.Capacity,
-                type: fieldInfo.FieldType);
-            port.portName = fieldInfo.Name;
-            port.name = fieldInfo.Name;
-            port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
-            return port;
+                type: field.FieldType);
+            input.portName = field.Name;
+            input.name = field.Name;
+            input.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
+            return input;
         }
 
-        private Port CreateOutputPort(FieldInfo fieldInfo, NodeOutputAttribute attribute)
+        private Port CreatePortOutput(FieldInfo field, NodeOutputAttribute attribute)
         {
-            var port = Port.Create<Edge>(
+            var output = Port.Create<Edge>(
                 orientation: Orientation.Horizontal,
                 direction: Direction.Output,
                 capacity: attribute.Capacity,
-                type: fieldInfo.FieldType);
-            port.portName = fieldInfo.Name;
-            port.name = fieldInfo.Name;
-            port.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
-            return port;
+                type: field.FieldType);
+            output.portName = field.Name;
+            output.name = field.Name;
+            output.AddManipulator(new EdgeConnector<Edge>(new ScriptableGraphEdgeConnectorListener()));
+            return output;
         }
 
-        private VisualElement CreateField(FieldInfo fieldInfo) => fieldInfo.FieldType switch
+        private VisualElement CreateFieldInput(FieldInfo field) => field.FieldType switch
         {
-            Type type when type == typeof(bool) => BindField(fieldInfo, new Toggle()),
-            Type type when type == typeof(int) => BindField(fieldInfo, new IntegerField()),
-            Type type when type == typeof(float) => BindField(fieldInfo, new FloatField()),
-            Type type when type == typeof(double) => BindField(fieldInfo, new DoubleField()),
-            Type type when type == typeof(string) => BindField(fieldInfo, new TextField()),
-            Type type when type == typeof(Enum) => BindField(fieldInfo, new EnumField()),
-            Type type when type == typeof(Vector2) => BindField(fieldInfo, new Vector2Field()),
-            Type type when type == typeof(Vector3) => BindField(fieldInfo, new Vector3Field()),
-            Type type when type == typeof(Vector4) => BindField(fieldInfo, new Vector4Field()),
-            Type type when type == typeof(Color) => BindField(fieldInfo, new UnityEditor.UIElements.ColorField()),
+            Type type when type == typeof(bool) => BindFieldInput(field, new Toggle()),
+            Type type when type == typeof(int) => BindFieldInput(field, new IntegerField()),
+            Type type when type == typeof(float) => BindFieldInput(field, new FloatField()),
+            Type type when type == typeof(string) => BindFieldInput(field, new TextField()),
+            Type type when type == typeof(Enum) => BindFieldInput(field, new EnumField()),
+            Type type when type == typeof(Vector2) => BindFieldInput(field, new Vector2Field()),
+            Type type when type == typeof(Vector3) => BindFieldInput(field, new Vector3Field()),
+            Type type when type == typeof(Vector4) => BindFieldInput(field, new Vector4Field()),
+            Type type when type == typeof(Color) => BindFieldInput(field, new UnityEditor.UIElements.ColorField()),
             // Default to an ObjectField so we can at least see what weird type we're trying to bind (maybe throw here instead?)
-            _ => BindField(fieldInfo, new ObjectField
+            _ => BindFieldInput(field, new ObjectField
             {
-                objectType = fieldInfo.FieldType,
-                bindingPath = fieldInfo.Name,
+                objectType = field.FieldType,
+                bindingPath = field.Name,
                 searchContext = SearchService.CreateContext("Assets"),
             })
         };
 
         // This only exists to make the above easier because of how awkward C# makes this (maybe I'm missing something?)
-        private BaseField<T> BindField<T>(FieldInfo fieldInfo, BaseField<T> field)
+        private BaseField<T> BindFieldInput<T>(FieldInfo field, BaseField<T> input)
         {
-            field.name = fieldInfo.Name;
-            field.label = fieldInfo.Name;
-            field.RegisterValueChangedCallback((changeEvent) => fieldInfo.SetValue(this, changeEvent.newValue));
-            return field;
+            input.name = field.Name;
+            input.label = field.Name;
+            input.RegisterValueChangedCallback((changeEvent) => field.SetValue(this, changeEvent.newValue));
+            return input;
         }
 
-        public Port GetInputPort(string name)
+        public Port GetPortInput(string name)
         {
             return inputContainer.Query<Port>(name);
         }
 
-        public Port GetOutputPort(string name)
+        public Port GetPortOutput(string name)
         {
             return outputContainer.Query<Port>(name);
         }
 
-        public ObjectField GetSlot(string name)
+        public VisualElement GetFieldInput(string name)
         {
-            return extensionContainer.Query<ObjectField>(name);
+            return extensionContainer.Query(name);
         }
     }
 }
