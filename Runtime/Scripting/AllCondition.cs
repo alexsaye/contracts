@@ -5,7 +5,7 @@ using UnityEngine.Events;
 namespace Contracts.Scripting
 {
     [CreateAssetMenu(menuName = "Contracts/Conditions/Composite/All")]
-    public class ScriptableAllCondition : ScriptableCondition
+    public class AllCondition : ScriptableCondition
     {
         [SerializeField]
         private ScriptableCondition[] subconditions;

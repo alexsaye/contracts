@@ -1,7 +1,5 @@
 using System;
-using UnityEngine;
 using UnityEditor.Experimental.GraphView;
-using System.Collections;
 
 namespace Contracts.Scripting.Graph
 {
@@ -13,20 +11,6 @@ namespace Contracts.Scripting.Graph
         public NodeMenuAttribute(string menuName)
         {
             MenuName = menuName;
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    public class NodePresentOnCreationAttribute : Attribute
-    {
-        public Vector2 Position { get; }
-
-        public NodePresentOnCreationAttribute()
-            : this(0, 0) { }
-
-        public NodePresentOnCreationAttribute(float x, float y)
-        {
-            Position = new Vector2(x, y);
         }
     }
 
@@ -63,11 +47,14 @@ namespace Contracts.Scripting.Graph
         }
     }
 
-    [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
-    public class NodeFieldAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
+    public class NodeCapabilitiesAttribute : Attribute
     {
-        public NodeFieldAttribute()
+        public Capabilities Capabilities { get; }
+
+        public NodeCapabilitiesAttribute(Capabilities capabilities)
         {
+            Capabilities = capabilities;
         }
     }
 }

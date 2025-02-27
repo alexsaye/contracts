@@ -4,13 +4,13 @@ using UnityEngine;
 namespace Contracts.Scripting.Graph
 {
     [NodeContext(typeof(CareerGraph))]
-    [NodePresentOnCreation(x: -300, y: 0)]
+    [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     public class CareerStartNode : ScriptableGraphNode
     {
         [NodeOutput(Port.Capacity.Multi)]
-        public ScriptableGraphNode Hire;
+        public bool Hire;
 
-        public CareerStartNode() : base("Start")
+        public CareerStartNode() : base("Start", new Color(0.6f, 0.3f, 0.3f))
         {
 
         }

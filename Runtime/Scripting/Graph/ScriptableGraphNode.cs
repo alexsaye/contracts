@@ -9,7 +9,7 @@ namespace Contracts.Scripting.Graph
 {
     public abstract class ScriptableGraphNode : Node
     {
-        public string Guid { get; set; }
+        public string Guid { get; private set; }
 
         public ScriptableGraphNode(string title, Color? titleBarColor = null)
         {
@@ -36,17 +36,7 @@ namespace Contracts.Scripting.Graph
                     var port = CreatePortOutput(field, outputAttribute);
                     outputContainer.Add(port);
                 }
-
-                var fieldAttribute = field.GetCustomAttribute<NodeFieldAttribute>();
-                if (fieldAttribute != null)
-                {
-                    var input = CreateFieldInput(field);
-                    extensionContainer.Add(input);
-                }
             }
-
-            RefreshPorts();
-            RefreshExpandedState();
         }
 
         private Port CreatePortInput(FieldInfo field, NodeInputAttribute attribute)
@@ -75,32 +65,31 @@ namespace Contracts.Scripting.Graph
             return output;
         }
 
-        private VisualElement CreateFieldInput(FieldInfo field) => field.FieldType switch
+        protected VisualElement CreateFieldInput(FieldInfo field, object source) => field.FieldType switch
         {
-            Type type when type == typeof(bool) => BindFieldInput(field, new Toggle()),
-            Type type when type == typeof(int) => BindFieldInput(field, new IntegerField()),
-            Type type when type == typeof(float) => BindFieldInput(field, new FloatField()),
-            Type type when type == typeof(string) => BindFieldInput(field, new TextField()),
-            Type type when type == typeof(Enum) => BindFieldInput(field, new EnumField()),
-            Type type when type == typeof(Vector2) => BindFieldInput(field, new Vector2Field()),
-            Type type when type == typeof(Vector3) => BindFieldInput(field, new Vector3Field()),
-            Type type when type == typeof(Vector4) => BindFieldInput(field, new Vector4Field()),
-            Type type when type == typeof(Color) => BindFieldInput(field, new UnityEditor.UIElements.ColorField()),
-            // Default to an ObjectField so we can at least see what weird type we're trying to bind (maybe throw here instead?)
-            _ => BindFieldInput(field, new ObjectField
+            Type type when type == typeof(bool) => InitFieldInput(new Toggle(), field, source),
+            Type type when type == typeof(int) => InitFieldInput(new IntegerField(), field, source),
+            Type type when type == typeof(float) => InitFieldInput(new FloatField(), field, source),
+            Type type when type == typeof(string) => InitFieldInput(new TextField(), field, source),
+            Type type when type == typeof(Enum) => InitFieldInput(new EnumField(), field, source),
+            Type type when type == typeof(Vector2) => InitFieldInput(new Vector2Field(), field, source),
+            Type type when type == typeof(Vector3) => InitFieldInput(new Vector3Field(), field, source),
+            Type type when type == typeof(Vector4) => InitFieldInput(new Vector4Field(), field, source),
+            Type type when type == typeof(Color) => InitFieldInput(new UnityEditor.UIElements.ColorField(), field, source),
+            _ => InitFieldInput(new ObjectField
             {
                 objectType = field.FieldType,
-                bindingPath = field.Name,
                 searchContext = SearchService.CreateContext("Assets"),
-            })
+            }, field, source)
         };
 
-        // This only exists to make the above easier because of how awkward C# makes this (maybe I'm missing something?)
-        private BaseField<T> BindFieldInput<T>(FieldInfo field, BaseField<T> input)
+        // TODO: I think we're misusing these and should be modifying SerializedObjects through bindingPath.
+        private BaseField<T> InitFieldInput<T>(BaseField<T> input, FieldInfo field, object source)
         {
             input.name = field.Name;
-            input.label = field.Name;
-            input.RegisterValueChangedCallback((changeEvent) => field.SetValue(this, changeEvent.newValue));
+            input.label = field.Name; // TODO: make it spaced with capitalization
+            input.value = (T)field.GetValue(source);
+            input.RegisterValueChangedCallback((evt) => field.SetValue(source, evt.newValue));
             return input;
         }
 
@@ -117,6 +106,21 @@ namespace Contracts.Scripting.Graph
         public VisualElement GetFieldInput(string name)
         {
             return extensionContainer.Query(name);
+        }
+
+        public virtual NodeSaveData Save()
+        {
+            // We need to (well, probably should) pass a consistent guid in after making the node so cache one and pass it into all node saves from this node.
+            if (Guid == null)
+            {
+                Guid = System.Guid.NewGuid().ToString();
+            }
+            return new NodeSaveData(GetType(), GetPosition(), Guid);
+        }
+
+        public virtual void Load(NodeSaveData saveData)
+        {
+            Guid = saveData.Guid;
         }
     }
 }
