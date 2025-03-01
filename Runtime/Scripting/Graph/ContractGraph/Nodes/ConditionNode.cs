@@ -1,11 +1,11 @@
-using Codice.Client.Common.GameUI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text.RegularExpressions;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.Search;
+using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -21,23 +21,22 @@ namespace Contracts.Scripting.Graph
                 .Where(type => type.IsSubclassOf(typeof(ScriptableCondition)) && !type.IsAbstract)
                 .ToDictionary(type => type.Name, type => type);
 
-        [NodeOutput(Port.Capacity.Single)]
-        public bool Satisfied;
-
-        [NodeOutput(Port.Capacity.Single)]
-        public bool Dissatisfied;
-
         private ScriptableCondition condition;
-        private readonly List<VisualElement> conditionElements = new();
+        private readonly List<VisualElement> customisationElements = new();
+
+        private readonly DropdownField typeField;
+        private readonly UnityEditor.Search.ObjectField assetField;
+        private readonly Port satisfiedPort;
+        private readonly Port dissatisfiedPort;
 
         public ConditionNode() : base("Condition", new Color(0.3f, 0.3f, 0.6f))
         {
             // Add a dropdown field to select a condition type.
-            var typeField = new DropdownField("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
+            typeField = new DropdownField("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
             inputContainer.Add(typeField);
 
             // Add an object field to select a condition asset.
-            var assetField = new ObjectField("Asset")
+            assetField = new UnityEditor.Search.ObjectField("Asset")
             {
                 objectType = typeof(ScriptableCondition),
                 searchContext = SearchService.CreateContext("Assets"),
@@ -65,57 +64,60 @@ namespace Contracts.Scripting.Graph
                     RefreshConditionElements();
                 }
             });
+
+            // Add an output port for if the condition is satisfied.
+            satisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(Node));
+            satisfiedPort.portName = "Satisfied";
+            outputContainer.Add(satisfiedPort);
+
+            // Add an output port for if the condition is dissatisfied.
+            dissatisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(Node));
+            dissatisfiedPort.portName = "Dissatisfied";
+            outputContainer.Add(dissatisfiedPort);
         }
 
-        private string FormatConditionName(string typeName)
+        private string FormatConditionName(string name)
         {
-            if (string.IsNullOrEmpty(typeName))
+            if (string.IsNullOrEmpty(name))
             {
                 return "Select a type...";
             }
-            return (typeName.EndsWith("Condition") ? typeName.Substring(0, typeName.Length - "Condition".Length) : typeName).CamelToTitle();
+            var words = Regex.Split(name, @"(?=[A-Z])");
+            var wordsToJoin = words.Take(words.Last().Equals("Condition") ? words.Length - 1 : words.Length);
+            return string.Join(" ", wordsToJoin);
         }
 
         private void RefreshConditionElements()
         {
-            // Clear existing condition elements.
-            foreach (var element in conditionElements)
+            // Clear existing elements.
+            foreach (var element in customisationElements)
             {
                 element.RemoveFromHierarchy();
             }
-            conditionElements.Clear();
+            customisationElements.Clear();
 
-            // Create new elements if there is a condition assigned.
-            if (condition != null)
+            // If there is no condition, nothing needs to be added.
+            if (condition == null)
             {
-                if (condition is AllCondition || condition is AnyCondition)
-                {
-                    var input = Port.Create<Edge>(
-                        orientation: Orientation.Horizontal,
-                        direction: Direction.Input,
-                        capacity: Port.Capacity.Multi,
-                        type: typeof(bool));
-                    input.portName = "Subconditions";
-                    inputContainer.Add(input);
-                    conditionElements.Add(input);
-                }
-                else
-                {
-                    // Get all public fields and fields marked with SerializeField.
-                    var fields = condition
-                        .GetType()
-                        .GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance)
-                        .Where(field => field.IsPublic || field.GetCustomAttribute<SerializeField>() != null);
-
-                    // Create input elements for each field.
-                    foreach (var field in fields)
-                    {
-                        var input = CreateFieldInput(field, condition);
-                        extensionContainer.Add(input);
-                        conditionElements.Add(input);
-                    }
-                }
+                return;
             }
+
+            // Serialize the condition to create property inputs with data binding.
+            var serializedCondition = new SerializedObject(condition);
+
+            // Iterate over all the visible serialized properties of the condition.
+            var iterator = serializedCondition.GetIterator();
+            iterator.NextVisible(true);
+            while (iterator.NextVisible(false))
+            {
+                // Create an extension field for this property so that it can be customised within the graph.
+                var field = iterator.CreateFieldElement();
+                extensionContainer.Add(field);
+                customisationElements.Add(field);
+            }
+            mainContainer.Bind(serializedCondition);
+
+            RefreshPorts();
             RefreshExpandedState();
         }
 
@@ -130,6 +132,16 @@ namespace Contracts.Scripting.Graph
         {
             base.Load(nodeSave);
             condition = (ScriptableCondition)nodeSave.Item;
+            if (AssetDatabase.Contains(condition))
+            {
+                // The condition is a separate game asset, so update the asset field.
+                assetField.value = condition;
+            }
+            else
+            {
+                // The condition is nested within the graph, so update the type field.
+                typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
+            }
             RefreshConditionElements();
         }
     }

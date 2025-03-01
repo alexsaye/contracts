@@ -33,18 +33,18 @@ namespace Contracts.Scripting.Graph
             grid.SendToBack();
 
             Graph = graph;
-            
+
             foreach (var nodeSave in Graph.Nodes)
             {
                 var node = LoadNode(nodeSave);
                 AddElement(node);
             }
-            
-            foreach (var edgeSave in Graph.Edges)
-            {
-                var edge = LoadEdge(edgeSave);
-                AddElement(edge);
-            }
+
+            //foreach (var edgeSave in Graph.Edges)
+            //{
+            //    var edge = LoadEdge(edgeSave);
+            //    AddElement(edge);
+            //}
 
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
         }
@@ -124,7 +124,7 @@ namespace Contracts.Scripting.Graph
         {
             var node = (ScriptableGraphNode)Activator.CreateInstance(type);
             node.SetPosition(position);
-            
+
             var capabilitiesAttribute = type.GetCustomAttribute<NodeCapabilitiesAttribute>();
             if (capabilitiesAttribute != null)
             {
@@ -146,25 +146,25 @@ namespace Contracts.Scripting.Graph
             return node;
         }
 
-        private Edge LoadEdge(EdgeSaveData edgeSave)
-        {
-            var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
-            var outputPort = outputNode.GetPortOutput(edgeSave.OutputPortName);
-        
-            var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
-            var inputPort = inputNode.GetPortInput(edgeSave.InputPortName);
+        //private Edge LoadEdge(EdgeSaveData edgeSave)
+        //{
+        //   var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
+        //   var outputPort = outputNode.GetPortOutput(edgeSave.OutputPortName);
 
-            var edge = new Edge
-            {
-                input = inputPort,
-                output = outputPort
-            };
+        //   var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
+        //   var inputPort = inputNode.GetPortInput(edgeSave.InputPortName);
 
-            inputPort.Connect(edge);
-            outputPort.Connect(edge);
+        //   var edge = new Edge
+        //   {
+        //       input = inputPort,
+        //       output = outputPort
+        //   };
 
-            return edge;
-        }
+        //   inputPort.Connect(edge);
+        //   outputPort.Connect(edge);
+
+        //   return edge;
+        //}
 
         public void SaveGraph()
         {
