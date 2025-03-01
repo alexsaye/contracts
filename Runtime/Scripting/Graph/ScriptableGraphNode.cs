@@ -65,29 +65,30 @@ namespace Contracts.Scripting.Graph
             return output;
         }
 
-        protected VisualElement CreateFieldInput(FieldInfo field, object source) => field.FieldType switch
-        {
-            Type type when type == typeof(bool) => InitFieldInput(new Toggle(), field, source),
-            Type type when type == typeof(int) => InitFieldInput(new IntegerField(), field, source),
-            Type type when type == typeof(float) => InitFieldInput(new FloatField(), field, source),
-            Type type when type == typeof(string) => InitFieldInput(new TextField(), field, source),
-            Type type when type == typeof(Enum) => InitFieldInput(new EnumField(), field, source),
-            Type type when type == typeof(Vector2) => InitFieldInput(new Vector2Field(), field, source),
-            Type type when type == typeof(Vector3) => InitFieldInput(new Vector3Field(), field, source),
-            Type type when type == typeof(Vector4) => InitFieldInput(new Vector4Field(), field, source),
-            Type type when type == typeof(Color) => InitFieldInput(new UnityEditor.UIElements.ColorField(), field, source),
-            _ => InitFieldInput(new ObjectField
+        protected VisualElement CreateFieldInput(FieldInfo field, object source) {
+            return field.FieldType switch
             {
-                objectType = field.FieldType,
-                searchContext = SearchService.CreateContext("Assets"),
-            }, field, source)
-        };
+                Type type when type == typeof(bool) => InitFieldInput(new Toggle(), field, source),
+                Type type when type == typeof(int) => InitFieldInput(new IntegerField(), field, source),
+                Type type when type == typeof(float) => InitFieldInput(new FloatField(), field, source),
+                Type type when type == typeof(string) => InitFieldInput(new TextField(), field, source),
+                Type type when type == typeof(Enum) => InitFieldInput(new EnumField(), field, source),
+                Type type when type == typeof(Vector2) => InitFieldInput(new Vector2Field(), field, source),
+                Type type when type == typeof(Vector3) => InitFieldInput(new Vector3Field(), field, source),
+                Type type when type == typeof(Vector4) => InitFieldInput(new Vector4Field(), field, source),
+                Type type when type == typeof(Color) => InitFieldInput(new UnityEditor.UIElements.ColorField(), field, source),
+                _ => InitFieldInput(new ObjectField
+                {
+                    objectType = field.FieldType,
+                    searchContext = SearchService.CreateContext("Assets"),
+                }, field, source)
+            };
+        }
 
-        // TODO: I think we're misusing these and should be modifying SerializedObjects through bindingPath.
         private BaseField<T> InitFieldInput<T>(BaseField<T> input, FieldInfo field, object source)
         {
             input.name = field.Name;
-            input.label = field.Name; // TODO: make it spaced with capitalization
+            input.label = field.Name.CamelToTitle();
             input.value = (T)field.GetValue(source);
             input.RegisterValueChangedCallback((evt) => field.SetValue(source, evt.newValue));
             return input;

@@ -1,8 +1,11 @@
+using Codice.Client.Common.GameUI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices.WindowsRuntime;
 using UnityEditor.Experimental.GraphView;
+using UnityEditor.Search;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -29,47 +32,64 @@ namespace Contracts.Scripting.Graph
 
         public ConditionNode() : base("Condition", new Color(0.3f, 0.3f, 0.6f))
         {
-            // Add a dropdown field to select the type of condition.
-            var conditionField = new DropdownField("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
-            conditionField.RegisterValueChangedCallback((e) => LoadCondition(conditionTypes[e.newValue]));
-            inputContainer.Add(conditionField);
+            // Add a dropdown field to select a condition type.
+            var typeField = new DropdownField("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
+            inputContainer.Add(typeField);
+
+            // Add an object field to select a condition asset.
+            var assetField = new ObjectField("Asset")
+            {
+                objectType = typeof(ScriptableCondition),
+                searchContext = SearchService.CreateContext("Assets"),
+            };
+            inputContainer.Add(assetField);
+
+            // If the type field is given a valid type, create a new condition instance of that type and clear the asset field.
+            typeField.RegisterValueChangedCallback((e) =>
+            {
+                if (!string.IsNullOrEmpty(e.newValue))
+                {
+                    assetField.value = null;
+                    condition = (ScriptableCondition)ScriptableObject.CreateInstance(conditionTypes[e.newValue]);
+                }
+                RefreshConditionElements();
+            });
+
+            // If the asset field is given a valid asset, set the condition instance to the selected asset and clear the type field.
+            assetField.RegisterValueChangedCallback((e) =>
+            {
+                if (e.newValue != null)
+                {
+                    typeField.index = -1;
+                    condition = (ScriptableCondition)e.newValue;
+                    RefreshConditionElements();
+                }
+            });
         }
 
         private string FormatConditionName(string typeName)
         {
             if (string.IsNullOrEmpty(typeName))
             {
-                // TODO: how do we handle creating nodes with none?
-                // maybe the context menu should supply all the types instead and theyre constructed with it so there is no none option?
-                // maybe there shouldn't be a dropdown at all and we pass the type selected in the dropdown into the constructor (I think that's probably better but this works for now)
-                return "None";
+                return "Select a type...";
             }
-
-            var words = System.Text.RegularExpressions.Regex.Split(typeName, @"(?=[A-Z])");
-            var wordsToJoin = words.Take(words.Last().Equals("Condition") ? words.Length - 1 : words.Length);
-            return string.Join(" ", wordsToJoin);
+            return (typeName.EndsWith("Condition") ? typeName.Substring(0, typeName.Length - "Condition".Length) : typeName).CamelToTitle();
         }
 
-        private void LoadCondition(Type type)
+        private void RefreshConditionElements()
         {
-            LoadCondition((ScriptableCondition)ScriptableObject.CreateInstance(type));
-        }
-
-        private void LoadCondition(ScriptableCondition condition)
-        {
-            // Clear the previously rendered condition's elements.
+            // Clear existing condition elements.
             foreach (var element in conditionElements)
             {
                 element.RemoveFromHierarchy();
             }
             conditionElements.Clear();
 
-            this.condition = condition;
+            // Create new elements if there is a condition assigned.
             if (condition != null)
             {
                 if (condition is AllCondition || condition is AnyCondition)
                 {
-                    // TODO: this should be its own node really
                     var input = Port.Create<Edge>(
                         orientation: Orientation.Horizontal,
                         direction: Direction.Input,
@@ -96,7 +116,6 @@ namespace Contracts.Scripting.Graph
                     }
                 }
             }
-
             RefreshExpandedState();
         }
 
@@ -110,7 +129,8 @@ namespace Contracts.Scripting.Graph
         public override void Load(NodeSaveData nodeSave)
         {
             base.Load(nodeSave);
-            LoadCondition((ScriptableCondition)nodeSave.Item);
+            condition = (ScriptableCondition)nodeSave.Item;
+            RefreshConditionElements();
         }
     }
 }
