@@ -40,11 +40,11 @@ namespace Contracts.Scripting.Graph
                 AddElement(node);
             }
 
-            //foreach (var edgeSave in Graph.Edges)
-            //{
-            //    var edge = LoadEdge(edgeSave);
-            //    AddElement(edge);
-            //}
+            foreach (var edgeSave in Graph.Edges)
+            {
+                var edge = LoadEdge(edgeSave);
+                AddElement(edge);
+            }
 
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
         }
@@ -146,25 +146,25 @@ namespace Contracts.Scripting.Graph
             return node;
         }
 
-        //private Edge LoadEdge(EdgeSaveData edgeSave)
-        //{
-        //   var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
-        //   var outputPort = outputNode.GetPortOutput(edgeSave.OutputPortName);
+        private Edge LoadEdge(EdgeSaveData edgeSave)
+        {
+            var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
+            var outputPort = outputNode.outputContainer.Q<Port>(edgeSave.OutputPortName);
 
-        //   var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
-        //   var inputPort = inputNode.GetPortInput(edgeSave.InputPortName);
+            var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
+            var inputPort = inputNode.inputContainer.Q<Port>(edgeSave.InputPortName);
 
-        //   var edge = new Edge
-        //   {
-        //       input = inputPort,
-        //       output = outputPort
-        //   };
+            var edge = new Edge
+            {
+                input = inputPort,
+                output = outputPort
+            };
 
-        //   inputPort.Connect(edge);
-        //   outputPort.Connect(edge);
+            inputPort.Connect(edge);
+            outputPort.Connect(edge);
 
-        //   return edge;
-        //}
+            return edge;
+        }
 
         public void SaveGraph()
         {

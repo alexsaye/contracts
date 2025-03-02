@@ -9,22 +9,22 @@ namespace Contracts.Scripting.Graph
         public string Type;
         public Rect Position;
         public string Guid;
-        public ScriptableObject Item; // TODO: maybe only a ConditionNodeSaveData and CareerProgressionNodeSaveData have an associated item, with more explicit typing.
+        public ScriptableObject Value;
 
-        public NodeSaveData(Type type, Rect position, string guid, ScriptableObject item = null)
+        public NodeSaveData(Type type, Rect position, string guid, ScriptableObject value = null)
         {
             Type = type.AssemblyQualifiedName;
             Position = position;
             Guid = guid;
-            Item = item;
+            Value = value;
         }
 
-        public NodeSaveData(Type type, Rect position, ScriptableObject item = null)
+        public NodeSaveData(Type type, Rect position, ScriptableObject value = null)
         {
             Type = type.AssemblyQualifiedName;
             Position = position;
             Guid = System.Guid.NewGuid().ToString();
-            Item = item;
+            Value = value;
         }
     }
 

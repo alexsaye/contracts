@@ -7,14 +7,20 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     public class ContractNode : ScriptableGraphNode
     {
-        [NodeInput(Port.Capacity.Single)]
-        public bool Fulfill;
-
-        [NodeInput(Port.Capacity.Single)]
-        public bool Reject;
+        private readonly Port fulfilPort;
+        private readonly Port rejectPort;
 
         public ContractNode() : base("Contract", new Color(0.6f, 0.6f, 0.3f))
         {
+            // Add an input port for the conditions which fulfil the contract.
+            fulfilPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
+            fulfilPort.name = fulfilPort.portName = "Fulfil";
+            inputContainer.Add(fulfilPort);
+
+            // Add an input port for the conditions which reject the contract.
+            rejectPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
+            rejectPort.name = rejectPort.portName = "Reject";
+            inputContainer.Add(rejectPort);
         }
     }
 }

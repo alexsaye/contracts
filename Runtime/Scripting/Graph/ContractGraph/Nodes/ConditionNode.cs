@@ -66,13 +66,13 @@ namespace Contracts.Scripting.Graph
             });
 
             // Add an output port for if the condition is satisfied.
-            satisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(Node));
-            satisfiedPort.portName = "Satisfied";
+            satisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
+            satisfiedPort.name = satisfiedPort.portName = "Satisfied";
             outputContainer.Add(satisfiedPort);
 
             // Add an output port for if the condition is dissatisfied.
-            dissatisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(Node));
-            dissatisfiedPort.portName = "Dissatisfied";
+            dissatisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
+            dissatisfiedPort.name = dissatisfiedPort.portName = "Dissatisfied";
             outputContainer.Add(dissatisfiedPort);
         }
 
@@ -124,23 +124,26 @@ namespace Contracts.Scripting.Graph
         public override NodeSaveData Save()
         {
             var nodeSave = base.Save();
-            nodeSave.Item = condition;
+            nodeSave.Value = condition;
             return nodeSave;
         }
 
         public override void Load(NodeSaveData nodeSave)
         {
             base.Load(nodeSave);
-            condition = (ScriptableCondition)nodeSave.Item;
-            if (AssetDatabase.Contains(condition))
+            if (nodeSave.Value != null)
             {
-                // The condition is a separate game asset, so update the asset field.
-                assetField.value = condition;
-            }
-            else
-            {
-                // The condition is nested within the graph, so update the type field.
-                typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
+                condition = (ScriptableCondition)nodeSave.Value;
+                if (AssetDatabase.Contains(condition))
+                {
+                    // The condition is a separate game asset, so update the asset field.
+                    assetField.value = condition;
+                }
+                else
+                {
+                    // The condition is nested within the graph, so update the type field.
+                    typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
+                }
             }
             RefreshConditionElements();
         }

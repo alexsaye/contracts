@@ -34,14 +34,14 @@ namespace Contracts.Scripting.Graph
         public override NodeSaveData Save()
         {
             var nodeSave = base.Save();
-            nodeSave.Item = Contract;
+            nodeSave.Value = Contract;
             return nodeSave;
         }
 
         public override void Load(NodeSaveData saveData)
         {
             base.Load(saveData);
-            Contract = (ContractGraph)saveData.Item;
+            Contract = (ContractGraph)saveData.Value;
         }
     }
 }
