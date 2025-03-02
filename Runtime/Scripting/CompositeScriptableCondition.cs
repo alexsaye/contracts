@@ -12,6 +12,13 @@ namespace Contracts
 
     public class CompositeScriptableCondition : ScriptableCondition
     {
+        public static CompositeScriptableCondition CreateInstance(CompositeType compositeType)
+        {
+            var condition = CreateInstance<CompositeScriptableCondition>();
+            condition.compositeType = compositeType;
+            return condition;
+        }
+
         [Serializable]
         public enum CompositeType
         {
@@ -24,9 +31,11 @@ namespace Contracts
 
         [SerializeField]
         private List<ScriptableCondition> expectSatisfied;
+        public List<ScriptableCondition> ExpectSatisfied => expectSatisfied;
 
         [SerializeField]
         private List<ScriptableCondition> expectDissatisfied;
+        public List<ScriptableCondition> ExpectDissatisfied => expectDissatisfied;
 
         public override ICondition Build(UnityEvent updated)
         {

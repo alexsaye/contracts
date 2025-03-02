@@ -16,7 +16,7 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
             // Add an output port for the first career progression nodes.
-            hirePort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
+            hirePort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             hirePort.name = hirePort.portName = "Hire";
             outputContainer.Add(hirePort);
         }

@@ -17,11 +17,11 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.6f, 0.3f));
 
             // Add an input port for the conditions which fulfil the contract.
-            fulfillPort = ObservablePort.Create<Edge>("Fulfill", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
+            fulfillPort = ObservablePort.Create<Edge>("Fulfill", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCondition));
             inputContainer.Add(fulfillPort);
 
             // Add an input port for the conditions which reject the contract.
-            rejectPort = ObservablePort.Create<Edge>("Reject", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
+            rejectPort = ObservablePort.Create<Edge>("Reject", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCondition));
             inputContainer.Add(rejectPort);
         }
     }

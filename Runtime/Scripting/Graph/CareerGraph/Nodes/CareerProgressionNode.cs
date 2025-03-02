@@ -25,15 +25,15 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
             // Add an input port for the previous career progression node.
-            previousPort = ObservablePort.Create<Edge>("Previous", Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(CareerProgressionNode));
+            previousPort = ObservablePort.Create<Edge>("Previous", Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(ScriptableCareerProgression));
             inputContainer.Add(previousPort);
 
             // Add an output port for the next career progression nodes when fulfilled.
-            fulfilledPort = ObservablePort.Create<Edge>("Fulfilled", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
+            fulfilledPort = ObservablePort.Create<Edge>("Fulfilled", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             outputContainer.Add(fulfilledPort);
 
             // Add an output port for the next career progression nodes when rejected.
-            rejectedPort = ObservablePort.Create<Edge>("Rejected", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
+            rejectedPort = ObservablePort.Create<Edge>("Rejected", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             outputContainer.Add(rejectedPort);
 
             // Add a field to select a scriptable contract.

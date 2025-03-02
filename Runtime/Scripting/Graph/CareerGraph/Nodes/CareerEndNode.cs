@@ -16,7 +16,7 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.6f, 0.3f));
 
             // Add an input port for the final career progression nodes.
-            retirePort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(CareerProgressionNode));
+            retirePort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             retirePort.name = retirePort.portName = "Retire";
             inputContainer.Add(retirePort);
         }

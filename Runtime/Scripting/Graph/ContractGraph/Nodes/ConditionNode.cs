@@ -22,6 +22,7 @@ namespace Contracts.Scripting.Graph
                 .ToDictionary(type => type.Name, type => type);
 
         private ScriptableCondition condition;
+        public ScriptableCondition Condition => condition;
 
         private readonly List<VisualElement> conditionElements = new();
         private readonly DropdownField typeField;
@@ -64,16 +65,16 @@ namespace Contracts.Scripting.Graph
                 {
                     typeField.index = -1;
                     condition = (ScriptableCondition)e.newValue;
-                    RefreshConditionElements();
                 }
+                RefreshConditionElements();
             });
 
             // Add an output port for if the condition is satisfied.
-            satisfiedPort = ObservablePort.Create<Edge>("Satisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
+            satisfiedPort = ObservablePort.Create<Edge>("Satisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
             outputContainer.Add(satisfiedPort);
 
             // Add an output port for if the condition is dissatisfied.
-            dissatisfiedPort = ObservablePort.Create<Edge>("Dissatisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
+            dissatisfiedPort = ObservablePort.Create<Edge>("Dissatisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
             outputContainer.Add(dissatisfiedPort);
         }
 
@@ -123,6 +124,20 @@ namespace Contracts.Scripting.Graph
                 conditionElements.Add(field);
             }
             mainContainer.Bind(serializedCondition);
+
+            // Reconnect the satisfied port to propagate the condition change.
+            foreach (var edge in satisfiedPort.connections)
+            {
+                edge.input.Disconnect(edge);
+                edge.input.Connect(edge);
+            }
+
+            // Reconnect the dissatisfied port to propagate the condition change.
+            foreach (var edge in dissatisfiedPort.connections)
+            {
+                edge.input.Disconnect(edge);
+                edge.input.Connect(edge);
+            }
 
             RefreshPorts();
             RefreshExpandedState();
