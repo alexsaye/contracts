@@ -3,7 +3,7 @@ using UnityEngine.UIElements;
 
 namespace Contracts.Scripting.Graph
 {
-    [CreateAssetMenu(fileName = "New Contract Graph", menuName = "Contracts/Contract Graph")]
+    [CreateAssetMenu(fileName = "New Contract Graph", menuName = "Contracts/Graph/Contract Graph")]
     public class ContractGraph : ScriptableGraph
     {
         private void Awake()

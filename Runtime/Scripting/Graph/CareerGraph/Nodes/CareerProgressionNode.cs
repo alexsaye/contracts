@@ -15,25 +15,25 @@ namespace Contracts.Scripting.Graph
 
         private readonly Button assetButton;
         private readonly UnityEditor.Search.ObjectField assetField;
-        private readonly Port previousPort;
-        private readonly Port fulfilledPort;
-        private readonly Port rejectedPort;
+        private readonly ObservablePort previousPort;
+        private readonly ObservablePort fulfilledPort;
+        private readonly ObservablePort rejectedPort;
 
-        public CareerProgressionNode() : base("Career Progression", new Color(0.6f, 0.6f, 0.3f))
+        public CareerProgressionNode() : base()
         {
+            title = "Career Progression";
+            titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
+
             // Add an input port for the previous career progression node.
-            previousPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(CareerProgressionNode));
-            previousPort.name = previousPort.portName = "Previous";
+            previousPort = ObservablePort.Create<Edge>("Previous", Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(CareerProgressionNode));
             inputContainer.Add(previousPort);
 
             // Add an output port for the next career progression nodes when fulfilled.
-            fulfilledPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
-            fulfilledPort.name = fulfilledPort.portName = "Fulfilled";
+            fulfilledPort = ObservablePort.Create<Edge>("Fulfilled", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
             outputContainer.Add(fulfilledPort);
 
             // Add an output port for the next career progression nodes when rejected.
-            rejectedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
-            rejectedPort.name = rejectedPort.portName = "Rejected";
+            rejectedPort = ObservablePort.Create<Edge>("Rejected", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionNode));
             outputContainer.Add(rejectedPort);
 
             // Add a field to select a scriptable contract.

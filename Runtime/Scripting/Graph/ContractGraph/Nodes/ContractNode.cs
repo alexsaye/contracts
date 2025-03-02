@@ -1,5 +1,6 @@
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Contracts.Scripting.Graph
 {
@@ -7,19 +8,20 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     public class ContractNode : ScriptableGraphNode
     {
-        private readonly Port fulfillPort;
-        private readonly Port rejectPort;
+        private readonly ObservablePort fulfillPort;
+        private readonly ObservablePort rejectPort;
 
-        public ContractNode() : base("Contract", new Color(0.6f, 0.6f, 0.3f))
+        public ContractNode() : base()
         {
+            title = "Contract";
+            titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.6f, 0.3f));
+
             // Add an input port for the conditions which fulfil the contract.
-            fulfillPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
-            fulfillPort.name = fulfillPort.portName = "Fulfill";
+            fulfillPort = ObservablePort.Create<Edge>("Fulfill", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
             inputContainer.Add(fulfillPort);
 
             // Add an input port for the conditions which reject the contract.
-            rejectPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
-            rejectPort.name = rejectPort.portName = "Reject";
+            rejectPort = ObservablePort.Create<Edge>("Reject", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionNode));
             inputContainer.Add(rejectPort);
         }
     }

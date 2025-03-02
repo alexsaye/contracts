@@ -26,11 +26,14 @@ namespace Contracts.Scripting.Graph
         private readonly List<VisualElement> conditionElements = new();
         private readonly DropdownField typeField;
         private readonly UnityEditor.Search.ObjectField assetField;
-        private readonly Port satisfiedPort;
-        private readonly Port dissatisfiedPort;
+        private readonly ObservablePort satisfiedPort;
+        private readonly ObservablePort dissatisfiedPort;
 
-        public ConditionNode() : base("Condition", new Color(0.3f, 0.3f, 0.6f))
+        public ConditionNode() : base()
         {
+            title = "Condition";
+            titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
+
             // Add a dropdown field to select a condition type.
             typeField = new("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
             inputContainer.Add(typeField);
@@ -66,13 +69,11 @@ namespace Contracts.Scripting.Graph
             });
 
             // Add an output port for if the condition is satisfied.
-            satisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
-            satisfiedPort.name = satisfiedPort.portName = "Satisfied";
+            satisfiedPort = ObservablePort.Create<Edge>("Satisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
             outputContainer.Add(satisfiedPort);
 
             // Add an output port for if the condition is dissatisfied.
-            dissatisfiedPort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
-            dissatisfiedPort.name = dissatisfiedPort.portName = "Dissatisfied";
+            dissatisfiedPort = ObservablePort.Create<Edge>("Dissatisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionNode));
             outputContainer.Add(dissatisfiedPort);
         }
 
@@ -82,8 +83,14 @@ namespace Contracts.Scripting.Graph
             {
                 return "Select a type...";
             }
+
+            // Remove "ScriptableCondition" or "Condition" from the end of the name.
             var words = Regex.Split(name, @"(?=[A-Z])");
-            var wordsToJoin = words.Take(words.Last().Equals("Condition") ? words.Length - 1 : words.Length);
+            var wordsToJoin = words[words.Length - 1].Equals("Condition")
+                ? words[words.Length - 2].Equals("Scriptable")
+                    ? words.Take(words.Length - 2)
+                    : words.Take(words.Length - 1)
+                : words;
             return string.Join(" ", wordsToJoin);
         }
 

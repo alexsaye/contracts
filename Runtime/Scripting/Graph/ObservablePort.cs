@@ -92,7 +92,8 @@ namespace Contracts.Scripting.Graph
             }
         }
 
-        public new static ObservablePort Create<TEdge>(
+        public static ObservablePort Create<TEdge>(
+            string name,
             Orientation orientation,
             Direction direction,
             Port.Capacity capacity,
@@ -105,6 +106,8 @@ namespace Contracts.Scripting.Graph
                 m_EdgeConnector = (EdgeConnector)new EdgeConnector<TEdge>((IEdgeConnectorListener)listener)
             };
             ele.AddManipulator((IManipulator)ele.m_EdgeConnector);
+            ele.name = name;
+            ele.portName = name;
             return ele;
         }
     }

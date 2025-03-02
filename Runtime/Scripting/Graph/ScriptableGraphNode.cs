@@ -8,6 +8,7 @@ using System.Collections;
 using System.Reflection;
 using System.Linq;
 using System.Collections.Generic;
+using System;
 
 namespace Contracts.Scripting.Graph
 {
@@ -15,14 +16,8 @@ namespace Contracts.Scripting.Graph
     {
         public string Guid { get; private set; }
 
-        public ScriptableGraphNode(string title, Color? titleBarColor = null)
+        public ScriptableGraphNode()
         {
-            this.title = title;
-
-            if (titleBarColor.HasValue)
-            {
-                titleContainer.style.backgroundColor = new StyleColor(titleBarColor.Value);
-            }
         }
 
         public virtual NodeSaveData Save()
