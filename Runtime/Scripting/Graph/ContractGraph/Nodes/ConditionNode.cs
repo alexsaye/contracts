@@ -22,8 +22,8 @@ namespace Contracts.Scripting.Graph
                 .ToDictionary(type => type.Name, type => type);
 
         private ScriptableCondition condition;
-        private readonly List<VisualElement> customisationElements = new();
 
+        private readonly List<VisualElement> conditionElements = new();
         private readonly DropdownField typeField;
         private readonly UnityEditor.Search.ObjectField assetField;
         private readonly Port satisfiedPort;
@@ -32,11 +32,11 @@ namespace Contracts.Scripting.Graph
         public ConditionNode() : base("Condition", new Color(0.3f, 0.3f, 0.6f))
         {
             // Add a dropdown field to select a condition type.
-            typeField = new DropdownField("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
+            typeField = new("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
             inputContainer.Add(typeField);
 
             // Add an object field to select a condition asset.
-            assetField = new UnityEditor.Search.ObjectField("Asset")
+            assetField = new("Asset")
             {
                 objectType = typeof(ScriptableCondition),
                 searchContext = SearchService.CreateContext("Assets"),
@@ -90,11 +90,11 @@ namespace Contracts.Scripting.Graph
         private void RefreshConditionElements()
         {
             // Clear existing elements.
-            foreach (var element in customisationElements)
+            foreach (var element in conditionElements)
             {
                 element.RemoveFromHierarchy();
             }
-            customisationElements.Clear();
+            conditionElements.Clear();
 
             // If there is no condition, nothing needs to be added.
             if (condition == null)
@@ -113,7 +113,7 @@ namespace Contracts.Scripting.Graph
                 // Create an extension field for this property so that it can be customised within the graph.
                 var field = iterator.CreateFieldElement();
                 extensionContainer.Add(field);
-                customisationElements.Add(field);
+                conditionElements.Add(field);
             }
             mainContainer.Bind(serializedCondition);
 

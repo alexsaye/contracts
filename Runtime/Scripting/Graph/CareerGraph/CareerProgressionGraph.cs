@@ -4,8 +4,8 @@ using UnityEngine;
 
 namespace Contracts.Scripting.Graph
 {
-    [CreateAssetMenu(fileName = "Blank Career Graph", menuName = "Contracts/Career Graph")]
-    public class CareerGraph : ScriptableGraph
+    [CreateAssetMenu(fileName = "New Career Progression Graph", menuName = "Contracts/Career Progression Graph")]
+    public class CareerProgressionGraph : ScriptableGraph
     {
         private void Awake()
         {
