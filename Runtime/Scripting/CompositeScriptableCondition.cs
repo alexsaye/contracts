@@ -1,41 +1,53 @@
 
-using Contracts.Scripting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Events;
 
-namespace Contracts
+namespace Contracts.Scripting
 {
     [CreateAssetMenu(menuName = "Contracts/Asset/Conditions/Composite")]
 
     public class CompositeScriptableCondition : ScriptableCondition
     {
-        public static CompositeScriptableCondition CreateInstance(CompositeType compositeType)
-        {
-            var condition = CreateInstance<CompositeScriptableCondition>();
-            condition.compositeType = compositeType;
-            return condition;
-        }
-
         [Serializable]
-        public enum CompositeType
+        public enum CompositeMode
         {
             All,
             Any,
         }
 
         [SerializeField]
-        private CompositeType compositeType = CompositeType.All;
+        private CompositeMode mode = CompositeMode.All;
 
         [SerializeField]
         private List<ScriptableCondition> expectSatisfied;
-        public List<ScriptableCondition> ExpectSatisfied => expectSatisfied;
 
         [SerializeField]
         private List<ScriptableCondition> expectDissatisfied;
-        public List<ScriptableCondition> ExpectDissatisfied => expectDissatisfied;
+
+        public void SetMode(CompositeMode mode)
+        {
+            this.mode = mode;
+        }
+
+        public void Add(ScriptableCondition condition)
+        {
+            if (expectSatisfied == null)
+            {
+                expectSatisfied = new();
+            }
+            expectSatisfied.Add(condition);
+        }
+
+        public void Remove(ScriptableCondition condition)
+        {
+            if (expectSatisfied != null)
+            {
+                expectSatisfied.Remove(condition);
+            }
+        }
 
         public override ICondition Build(UnityEvent updated)
         {
@@ -44,10 +56,10 @@ namespace Contracts
             var expectDissatisfied = this.expectDissatisfied.Select(condition => condition.Build(updated)).ToArray();
 
             // Create the composite condition from the conditions.
-            return Condition.Composite(compositeType switch
+            return Condition.Composite(mode switch
             {
-                CompositeType.All => () => expectSatisfied.All(condition => condition.State) && expectDissatisfied.All(condition => !condition.State),
-                CompositeType.Any => () => expectSatisfied.Any(condition => condition.State) || expectDissatisfied.Any(condition => !condition.State),
+                CompositeMode.All => () => expectSatisfied.All(condition => condition.State) && expectDissatisfied.All(condition => !condition.State),
+                CompositeMode.Any => () => expectSatisfied.Any(condition => condition.State) || expectDissatisfied.Any(condition => !condition.State),
                 _ => throw new NotImplementedException(),
             }, expectSatisfied);
         }

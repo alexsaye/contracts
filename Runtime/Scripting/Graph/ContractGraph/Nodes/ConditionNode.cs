@@ -14,15 +14,17 @@ namespace Contracts.Scripting.Graph
     [NodeMenu("Condition")]
     [NodeContext(typeof(ContractGraph))]
     [NodeCapabilities(~Capabilities.Resizable)]
-    public class ConditionNode : ScriptableGraphNode
+    public class ConditionNode : ScriptableGraphNode, IConditionNode
     {
         private static readonly IReadOnlyDictionary<string, Type> conditionTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type => type.IsSubclassOf(typeof(ScriptableCondition)) && !type.IsAbstract)
                 .ToDictionary(type => type.Name, type => type);
 
-        private ScriptableCondition condition;
         public ScriptableCondition Condition => condition;
+
+        private ScriptableCondition condition;
+        private SerializedObject serializedCondition;
 
         private readonly List<VisualElement> conditionElements = new();
         private readonly DropdownField typeField;
@@ -36,11 +38,11 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add a dropdown field to select a condition type.
-            typeField = new("Type", conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
+            typeField = new(conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
             inputContainer.Add(typeField);
 
             // Add an object field to select a condition asset.
-            assetField = new("Asset")
+            assetField = new()
             {
                 objectType = typeof(ScriptableCondition),
                 searchContext = SearchService.CreateContext("Assets"),
@@ -56,6 +58,7 @@ namespace Contracts.Scripting.Graph
                     condition = (ScriptableCondition)ScriptableObject.CreateInstance(conditionTypes[e.newValue]);
                 }
                 RefreshConditionElements();
+                ReconnectSatisfactionPorts();
             });
 
             // If the asset field is given a valid asset, set the condition instance to the selected asset and clear the type field.
@@ -67,6 +70,7 @@ namespace Contracts.Scripting.Graph
                     condition = (ScriptableCondition)e.newValue;
                 }
                 RefreshConditionElements();
+                ReconnectSatisfactionPorts();
             });
 
             // Add an output port for if the condition is satisfied.
@@ -111,7 +115,7 @@ namespace Contracts.Scripting.Graph
             }
 
             // Serialize the condition to create property inputs with data binding.
-            var serializedCondition = new SerializedObject(condition);
+            serializedCondition = new SerializedObject(condition);
 
             // Iterate over all the visible serialized properties of the condition.
             var iterator = serializedCondition.GetIterator();
@@ -125,6 +129,13 @@ namespace Contracts.Scripting.Graph
             }
             mainContainer.Bind(serializedCondition);
 
+            RefreshPorts();
+            RefreshExpandedState();
+        }
+
+        // TODO: this might be necessary to forward changes to the composite nodes. review
+        private void ReconnectSatisfactionPorts()
+        {
             // Reconnect the satisfied port to propagate the condition change.
             foreach (var edge in satisfiedPort.connections)
             {
@@ -138,9 +149,6 @@ namespace Contracts.Scripting.Graph
                 edge.input.Disconnect(edge);
                 edge.input.Connect(edge);
             }
-
-            RefreshPorts();
-            RefreshExpandedState();
         }
 
         public override NodeSaveData Save()
