@@ -18,8 +18,8 @@ namespace Contracts.Scripting.Graph
             var satisfiedEdge = new ScriptableGraphEdgeModel(
                 conditionNode.Guid,
                 contractNode.Guid,
-                ConditionNode.OutputPortName,
-                ContractNode.InputFulfillPortName);
+                ConditionNode.OutputSatisfiedPortName,
+                ContractNode.InputFulfilledPortName);
 
             // Set the default model.
             Model = new ScriptableGraphModel(
@@ -36,8 +36,6 @@ namespace Contracts.Scripting.Graph
 
         public IContract Build(UnityEvent updated)
         {
-            Debug.Log($"Building contract from graph {name}...");
-
             // Find the contract node.
             var contractNode = Model.Nodes.First((node) => node.IsType(typeof(ContractNode)));
 

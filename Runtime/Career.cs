@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Contracts
@@ -33,6 +34,7 @@ namespace Contracts
 
         private void IssueNext(object sender, StateEventArgs<IEnumerable<ICareerProgression>> e)
         {
+            UnityEngine.Debug.Log("DONE!");
             var progression = (ICareerProgression)sender;
             if (progression.Contract.State != ContractState.Pending)
             {
@@ -41,6 +43,7 @@ namespace Contracts
                 progression.StateUpdated -= IssueNext;
                 foreach (var next in e.State)
                 {
+                    UnityEngine.Debug.Log("Issuing next!");
                     Issue(next);
                 }
             }

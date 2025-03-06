@@ -29,8 +29,6 @@ namespace Contracts.Scripting.Graph
         public string Type;
         public Rect Position;
         public string Guid;
-
-        [SerializeReference]
         public ScriptableObject Asset;
 
         public ScriptableGraphNodeModel(Type type, Rect position, string guid, ScriptableObject asset = null)
@@ -47,6 +45,14 @@ namespace Contracts.Scripting.Graph
             Position = position;
             Guid = System.Guid.NewGuid().ToString();
             Asset = asset;
+        }
+
+        public ScriptableGraphNodeModel(ScriptableGraphNodeModel model)
+        {
+            Type = model.Type;
+            Position = model.Position;
+            Guid = model.Guid;
+            Asset = model.Asset;
         }
 
         public bool IsType(Type type)

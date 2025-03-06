@@ -35,6 +35,7 @@ namespace Contracts
                 // TODO: handle the rest of this enum properly.
                 _ => new Label($"(Unsupported Input) {label}"),
             };
+            input.name = serializedProperty.propertyPath;
 
             // Bind the input to the serialized property.
             if (input is BindableElement bindableElement)

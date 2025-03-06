@@ -11,16 +11,14 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Resizable)]
     public class CompositeConditionNode : ScriptableGraphNode, IConditionNode
     {
-        public const string SubconditionsPortName = "Subconditions";
-        public const string SatisfiedPortName = "Satisfied";
-        public const string DissatisfiedPortName = "Dissatisfied";
+        public const string InputSubconditionsPortName = "Subconditions";
+        public const string OutputSatisfiedPortName = "Satisfied";
 
-        public ScriptableCondition Condition => (ScriptableCondition)serializedObject.targetObject;
-        private SerializedObject serializedObject;
+        public ScriptableCondition Condition => (ScriptableCondition)Asset;
 
         private readonly EnumField modeField;
-        private readonly ObservablePort subconditionsPort;
-        private readonly ObservablePort satisfiedPort;
+        private readonly ObservablePort inputSubconditionsPort;
+        private readonly ObservablePort outputSatisfiedPort;
 
         public CompositeConditionNode() : base()
         {
@@ -34,56 +32,43 @@ namespace Contracts.Scripting.Graph
             inputContainer.Add(modeField);
 
             // Add an input port for the subconditions.
-            subconditionsPort = ObservablePort.Create<Edge>(SubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(IConditionNode));
-            subconditionsPort.Connected += HandleSubconditionConnected;
-            subconditionsPort.Disconnected += HandleSubconditionDisconnected;
-            inputContainer.Add(subconditionsPort);
+            inputSubconditionsPort = ObservablePort.Create<Edge>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(IConditionNode));
+            inputSubconditionsPort.Connected += HandleSubconditionConnected;
+            inputSubconditionsPort.Disconnected += HandleSubconditionDisconnected;
+            inputContainer.Add(inputSubconditionsPort);
 
             // Add an output port for if the composition is satisfied.
-            satisfiedPort = ObservablePort.Create<Edge>(SatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(IConditionNode));
-            outputContainer.Add(satisfiedPort);
+            outputSatisfiedPort = ObservablePort.Create<Edge>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(IConditionNode));
+            outputContainer.Add(outputSatisfiedPort);
         }
 
         private void HandleSubconditionConnected(object sender, PortConnectionEventArgs e)
         {
             var condition = (IConditionNode)e.Edge.output.node;
-            var subconditionsProperty = serializedObject.FindProperty("subconditions");
+            var subconditionsProperty = SerializedAsset.FindProperty("subconditions");
             var index = subconditionsProperty.arraySize;
             subconditionsProperty.InsertArrayElementAtIndex(index);
             subconditionsProperty.GetArrayElementAtIndex(index).objectReferenceValue = condition.Condition;
-            serializedObject.ApplyModifiedProperties();
+            SerializedAsset.ApplyModifiedProperties();
             Debug.Log($"Composite {modeField.value} condition connected to{condition.Condition} subcondition.");
         }
 
         private void HandleSubconditionDisconnected(object sender, PortConnectionEventArgs e)
         {
-            var subconditionsProperty = serializedObject.FindProperty("subconditions");
+            var subconditionsProperty = SerializedAsset.FindProperty("subconditions");
             subconditionsProperty.DeleteArrayElementAtIndex(subconditionsProperty.arraySize - 1);
-            serializedObject.ApplyModifiedProperties();
+            SerializedAsset.ApplyModifiedProperties();
             Debug.Log($"Composite {modeField.value} condition subcondition disconnected.");
         }
 
-        public override ScriptableGraphNodeModel Save()
+        protected override ScriptableObject CreateDefaultAsset()
         {
-            var model = base.Save();
-            model.Asset = Condition;
-            return model;
+            return ScriptableObject.CreateInstance<CompositeScriptableCondition>();
         }
 
-        public override void Load(ScriptableGraphNodeModel model)
+        protected override void SetupAssetElements()
         {
-            base.Load(model);
-            CompositeScriptableCondition condition;
-            if (model != null && model.Asset is CompositeScriptableCondition loadedCondition)
-            {
-                condition = loadedCondition;
-            }
-            else
-            {
-                condition = ScriptableObject.CreateInstance<CompositeScriptableCondition>();
-            }
-            serializedObject = new SerializedObject(condition);
-            mainContainer.Bind(serializedObject);
+            inputContainer.Bind(SerializedAsset);
         }
     }
 }

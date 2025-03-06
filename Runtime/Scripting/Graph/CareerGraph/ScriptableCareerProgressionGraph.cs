@@ -21,12 +21,12 @@ namespace Contracts.Scripting.Graph
                 careerStartNode.Guid,
                 careerProgressionNode.Guid,
                 CareerStartNode.OutputPortName,
-                CareerProgressionNode.InputPortName);
+                CareerProgressionNode.InputIssuedPortName);
 
             var fulfilledEdge = new ScriptableGraphEdgeModel(
                 careerProgressionNode.Guid,
                 careerEndNode.Guid,
-                CareerProgressionNode.OutputFulfillPortName,
+                CareerProgressionNode.OutputFulfilledPortName,
                 CareerEndNode.InputPortName);
 
             // Set the default model.
@@ -46,19 +46,12 @@ namespace Contracts.Scripting.Graph
 
         public ICollection<ICareerProgression> Build(UnityEvent updated)
         {
-            Debug.Log($"Building career progression from graph {name}...");
-
             // Find the progression nodes directly connected to the start node
             var startNode = Model.Nodes.First((node) => node.IsType(typeof(CareerStartNode)));
-            Debug.Log($"Found start node: {startNode}");
-
             var endNode = Model.Nodes.First((node) => node.IsType(typeof(CareerEndNode)));
-            Debug.Log($"Found end node: {endNode}");
-
             var progressionNodes = Model.Edges
                 .Where((edge) => edge.OutputNodeGuid == startNode.Guid && edge.InputNodeGuid != endNode.Guid)
                 .Select((edge) => Model.Nodes.First((node) => node.Guid == edge.InputNodeGuid));
-            Debug.Log($"Found {progressionNodes.Count()} progression nodes.");
 
             // Build the progressions from the node assets.
             var progressionAssets = progressionNodes.Select((node) => (ScriptableCareerProgression)node.Asset);

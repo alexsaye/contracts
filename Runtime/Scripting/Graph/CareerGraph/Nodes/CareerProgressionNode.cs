@@ -11,108 +11,106 @@ namespace Contracts.Scripting.Graph
     [NodeContext(typeof(ScriptableCareerProgressionGraph))]
     public class CareerProgressionNode : ScriptableGraphNode
     {
-        public const string InputPortName = "Issued";
-        public const string OutputFulfillPortName = "Fulfilled";
-        public const string OutputRejectPortName = "Rejected";
+        public const string InputIssuedPortName = "Issued";
+        public const string OutputFulfilledPortName = "Fulfilled";
+        public const string OutputRejectedPortName = "Rejected";
 
-        public ScriptableCareerProgression CareerProgression => (ScriptableCareerProgression)serializedObject.targetObject;
-        private SerializedObject serializedObject;
+        public ScriptableCareerProgression CareerProgression => (ScriptableCareerProgression)Asset;
 
-        private readonly Button assetButton;
         private readonly UnityEditor.Search.ObjectField assetField;
-        private readonly ObservablePort inputPort;
+        private readonly ObservablePort inputIssuedPort;
         private readonly ObservablePort outputFulfillPort;
         private readonly ObservablePort outputRejectPort;
 
         public CareerProgressionNode() : base()
         {
             title = "Career Progression";
-            titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
+            titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add an input port for the previous career progression node to issue this progression through.
-            inputPort = ObservablePort.Create<Edge>(InputPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(ScriptableCareerProgression));
-            inputContainer.Add(inputPort);
+            inputIssuedPort = ObservablePort.Create<Edge>(InputIssuedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(ScriptableCareerProgression));
+            inputContainer.Add(inputIssuedPort);
 
             // Add an output port for the next career progression nodes when fulfilled.
-            outputFulfillPort = ObservablePort.Create<Edge>(OutputFulfillPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            outputFulfillPort = ObservablePort.Create<Edge>(OutputFulfilledPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            outputFulfillPort.Connected += HandleFulfilledConnected;
+            outputFulfillPort.Disconnected += HandleFulfilledDisconnected;
             outputContainer.Add(outputFulfillPort);
 
             // Add an output port for the next career progression nodes when rejected.
-            outputRejectPort = ObservablePort.Create<Edge>(OutputRejectPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            outputRejectPort = ObservablePort.Create<Edge>(OutputRejectedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            outputRejectPort.Connected += HandleRejectedConnected;
+            outputRejectPort.Disconnected += HandleRejectedDisconnected;
             outputContainer.Add(outputRejectPort);
 
             // Add a field to select a scriptable contract.
             assetField = new()
             {
                 searchContext = SearchService.CreateContext("Assets"),
+                objectType = typeof(ScriptableContractGraph),
+                bindingPath = "contractGraph",
             };
             inputContainer.Add(assetField);
-
-            // Add a button to toggle between asset types.
-            assetButton = new(ToggleAssetType);
-            assetButton.text = "Toggle Asset Type";
-            inputContainer.Add(assetButton);
         }
 
-        public override ScriptableGraphNodeModel Save()
+        private void HandleFulfilledConnected(object sender, PortConnectionEventArgs args)
         {
-            var model = base.Save();
-            model.Asset = CareerProgression;
-            return model;
-        }
-
-        public override void Load(ScriptableGraphNodeModel model)
-        {
-            base.Load(model);
-            ScriptableCareerProgression careerProgression;
-            if (model != null && model.Asset is ScriptableCareerProgression loadedCareerProgression)
+            if (args.Edge.input.node is CareerProgressionNode progression)
             {
-                careerProgression = loadedCareerProgression;
-            }
-            else
-            {
-                careerProgression = ScriptableObject.CreateInstance<ScriptableCareerProgression>();
-            }
-
-            serializedObject = new SerializedObject(careerProgression);
-            mainContainer.Bind(serializedObject);
-
-            // TODO: for some reason this isn't detecting the contract
-            if (serializedObject.FindProperty("contract").objectReferenceValue != null)
-            {
-                UseContractAssetType();
-            }
-            else
-            {
-                UseContractGraphAssetType();
+                var nextOnFulfilledProperty = SerializedAsset.FindProperty("nextOnFulfilled");
+                var index = nextOnFulfilledProperty.arraySize;
+                nextOnFulfilledProperty.InsertArrayElementAtIndex(index);
+                nextOnFulfilledProperty.GetArrayElementAtIndex(index).objectReferenceValue = progression.CareerProgression;
+                SerializedAsset.ApplyModifiedProperties();
+                Debug.Log($"Career progression fulfilled port connected to{progression} progression.");
             }
         }
 
-        private void UseContractAssetType()
+        private void HandleFulfilledDisconnected(object sender, PortConnectionEventArgs args)
         {
-            Debug.Log("Using contract asset type.");
-            assetField.objectType = typeof(ScriptableContract);
-            assetField.bindingPath = "contract";
+            if (args.Edge.input.node is CareerProgressionNode progression)
+            {
+                var nextOnFulfilledProperty = SerializedAsset.FindProperty("nextOnFulfilled");
+                var index = nextOnFulfilledProperty.arraySize;
+                nextOnFulfilledProperty.DeleteArrayElementAtIndex(index);
+                SerializedAsset.ApplyModifiedProperties();
+                Debug.Log($"Career progression fulfilled port disconnected.");
+            }
         }
 
-        private void UseContractGraphAssetType()
+        private void HandleRejectedConnected(object sender, PortConnectionEventArgs args)
         {
-            Debug.Log("Using contract graph asset type.");
-            assetField.objectType = typeof(ScriptableContractGraph);
-            assetField.bindingPath = "contractGraph";
+            if (args.Edge.input.node is CareerProgressionNode progression)
+            {
+                var nextOnRejectedProperty = SerializedAsset.FindProperty("nextOnRejected");
+                var index = nextOnRejectedProperty.arraySize;
+                nextOnRejectedProperty.InsertArrayElementAtIndex(index);
+                nextOnRejectedProperty.GetArrayElementAtIndex(index).objectReferenceValue = progression.CareerProgression;
+                SerializedAsset.ApplyModifiedProperties();
+                Debug.Log($"Career progression rejected port connected to{progression} progression.");
+            }
         }
 
-        private void ToggleAssetType()
+        private void HandleRejectedDisconnected(object sender, PortConnectionEventArgs args)
         {
-            assetField.value = null;
-            if (assetField.objectType == typeof(ScriptableContractGraph))
+            if (args.Edge.input.node is CareerProgressionNode progression)
             {
-                UseContractAssetType();
+                var nextOnRejectedProperty = SerializedAsset.FindProperty("nextOnRejected");
+                var index = nextOnRejectedProperty.arraySize;
+                nextOnRejectedProperty.DeleteArrayElementAtIndex(index);
+                SerializedAsset.ApplyModifiedProperties();
+                Debug.Log($"Career progression rejected port disconnected.");
             }
-            else
-            {
-                UseContractGraphAssetType();
-            }
+        }
+
+        protected override ScriptableObject CreateDefaultAsset()
+        {
+            return ScriptableObject.CreateInstance<ScriptableCareerProgression>();
+        }
+
+        protected override void SetupAssetElements()
+        {
+            inputContainer.Bind(SerializedAsset);
         }
     }
 }
