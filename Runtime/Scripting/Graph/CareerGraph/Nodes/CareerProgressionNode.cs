@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.UIElements;
-using UnityEditor.UIElements;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.Search;
 
@@ -10,12 +9,16 @@ namespace Contracts.Scripting.Graph
     [NodeContext(typeof(CareerProgressionGraph))]
     public class CareerProgressionNode : ScriptableGraphNode
     {
+        public const string IssuePortName = "Issue";
+        public const string FulfilledPortName = "Fulfilled";
+        public const string RejectedPortName = "Rejected";
+
         private ContractGraph contractGraph;
         private ScriptableContract contract;
 
         private readonly Button assetButton;
         private readonly UnityEditor.Search.ObjectField assetField;
-        private readonly ObservablePort previousPort;
+        private readonly ObservablePort issuePort;
         private readonly ObservablePort fulfilledPort;
         private readonly ObservablePort rejectedPort;
 
@@ -24,16 +27,16 @@ namespace Contracts.Scripting.Graph
             title = "Career Progression";
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
-            // Add an input port for the previous career progression node.
-            previousPort = ObservablePort.Create<Edge>("Previous", Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(ScriptableCareerProgression));
-            inputContainer.Add(previousPort);
+            // Add an input port for the previous career progression node to issue this progression through.
+            issuePort = ObservablePort.Create<Edge>(IssuePortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single, typeof(ScriptableCareerProgression));
+            inputContainer.Add(issuePort);
 
             // Add an output port for the next career progression nodes when fulfilled.
-            fulfilledPort = ObservablePort.Create<Edge>("Fulfilled", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            fulfilledPort = ObservablePort.Create<Edge>(FulfilledPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             outputContainer.Add(fulfilledPort);
 
             // Add an output port for the next career progression nodes when rejected.
-            rejectedPort = ObservablePort.Create<Edge>("Rejected", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            rejectedPort = ObservablePort.Create<Edge>(RejectedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             outputContainer.Add(rejectedPort);
 
             // Add a field to select a scriptable contract.
@@ -69,28 +72,28 @@ namespace Contracts.Scripting.Graph
             inputContainer.Add(assetButton);
         }
 
-        public override NodeSaveData Save()
+        public override ScriptableGraphNodeModel Save()
         {
-            var nodeSave = base.Save();
+            var model = base.Save();
             if (contractGraph != null)
             {
-                nodeSave.Value = contractGraph;
+                model.Asset = contractGraph;
             }
             else if (contract != null)
             {
-                nodeSave.Value = contract;
+                model.Asset = contract;
             }
-            return nodeSave;
+            return model;
         }
 
-        public override void Load(NodeSaveData saveData)
+        public override void Load(ScriptableGraphNodeModel model)
         {
-            base.Load(saveData);
-            if (saveData.Value is ContractGraph contractGraph)
+            base.Load(model);
+            if (model.Asset is ContractGraph contractGraph)
             {
                 assetField.value = contractGraph;
             }
-            else if (saveData.Value is ScriptableContract contract)
+            else if (model.Asset is ScriptableContract contract)
             {
                 assetField.value = contract;
             }

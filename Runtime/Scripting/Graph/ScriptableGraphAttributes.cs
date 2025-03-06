@@ -14,36 +14,14 @@ namespace Contracts.Scripting.Graph
         }
     }
 
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
     public class NodeContextAttribute : Attribute
     {
-        public Type[] Contexts { get; }
+        public Type GraphType { get; }
 
-        public NodeContextAttribute(params Type[] contexts)
+        public NodeContextAttribute(Type graphType)
         {
-            Contexts = contexts;
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
-    public class NodeInputAttribute : Attribute
-    {
-        public Port.Capacity Capacity { get; }
-
-        public NodeInputAttribute(Port.Capacity capacity = Port.Capacity.Single)
-        {
-            Capacity = capacity;
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Field, Inherited = true, AllowMultiple = false)]
-    public class NodeOutputAttribute : Attribute
-    {
-        public Port.Capacity Capacity { get; }
-
-        public NodeOutputAttribute(Port.Capacity capacity = Port.Capacity.Multi)
-        {
-            Capacity = capacity;
+            GraphType = graphType;
         }
     }
 

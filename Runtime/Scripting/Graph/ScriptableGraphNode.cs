@@ -1,14 +1,4 @@
-﻿using UnityEngine;
-using UnityEditor.Experimental.GraphView;
-using UnityEditor;
-using UnityEngine.UIElements;
-using UnityEditor.UIElements;
-using UnityEditor.Search;
-using System.Collections;
-using System.Reflection;
-using System.Linq;
-using System.Collections.Generic;
-using System;
+﻿using UnityEditor.Experimental.GraphView;
 
 namespace Contracts.Scripting.Graph
 {
@@ -20,18 +10,18 @@ namespace Contracts.Scripting.Graph
         {
         }
 
-        public virtual NodeSaveData Save()
+        public virtual ScriptableGraphNodeModel Save()
         {
             if (Guid == null)
             {
                 Guid = System.Guid.NewGuid().ToString();
             }
-            return new NodeSaveData(GetType(), GetPosition(), Guid);
+            return new ScriptableGraphNodeModel(GetType(), GetPosition(), Guid);
         }
 
-        public virtual void Load(NodeSaveData saveData)
+        public virtual void Load(ScriptableGraphNodeModel model)
         {
-            Guid = saveData.Guid;
+            Guid = model.Guid;
         }
     }
 }

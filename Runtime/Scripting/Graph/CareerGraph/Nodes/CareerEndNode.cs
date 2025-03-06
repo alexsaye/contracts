@@ -8,6 +8,8 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     public class CareerEndNode : ScriptableGraphNode
     {
+        public const string RetirePortName = "Retire";
+
         private readonly Port retirePort;
 
         public CareerEndNode() : base()
@@ -16,8 +18,7 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.6f, 0.3f));
 
             // Add an input port for the final career progression nodes.
-            retirePort = Port.Create<Edge>(Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
-            retirePort.name = retirePort.portName = "Retire";
+            retirePort = ObservablePort.Create<Edge>(RetirePortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
             inputContainer.Add(retirePort);
         }
     }

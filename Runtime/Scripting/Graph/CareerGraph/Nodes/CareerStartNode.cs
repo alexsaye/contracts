@@ -8,7 +8,9 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     public class CareerStartNode : ScriptableGraphNode
     {
-        private readonly Port hirePort;
+        public const string HiredPortName = "Hired";
+
+        private readonly Port hiredPort;
 
         public CareerStartNode() : base()
         {
@@ -16,9 +18,8 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
             // Add an output port for the first career progression nodes.
-            hirePort = Port.Create<Edge>(Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
-            hirePort.name = hirePort.portName = "Hire";
-            outputContainer.Add(hirePort);
+            hiredPort = ObservablePort.Create<Edge>(HiredPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            outputContainer.Add(hiredPort);
         }
     }
 }

@@ -11,10 +11,47 @@ namespace Contracts.Scripting.Graph
 {
     public class ScriptableGraphView : GraphView
     {
-        public ScriptableGraph Graph { get; private set; }
-        private static Dictionary<Type, List<NodeAttributeComposition>> cachedNodeTypes = new();
+        /// <summary>
+        /// A cache of all nodes that can be created through the contextual menu for each graph type.
+        /// </summary>
+        private static Dictionary<Type, Dictionary<string, Type>> allMenuNodes = CacheAllMenuNodes();
+        private static Dictionary<Type, Dictionary<string, Type>> CacheAllMenuNodes()
+        {
+            // Get all the node types.
+            var nodeTypes = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(ScriptableGraphNode)));
 
-        public ScriptableGraphView(ScriptableGraph graph)
+            // Build the menu nodes from all nodes that have a menu attribute.
+            var allMenuNodes = new Dictionary<Type, Dictionary<string, Type>>();
+            foreach (var nodeType in nodeTypes)
+            {
+                var menuAttribute = nodeType.GetCustomAttribute<NodeMenuAttribute>();
+                if (menuAttribute == null)
+                {
+                    continue;
+                }
+
+                // Populate the menu nodes for each graph type referenced by the node's context attributes.
+                var contextAttributes = nodeType.GetCustomAttributes<NodeContextAttribute>();
+                foreach (var contextAttribute in contextAttributes)
+                {
+                    if (!allMenuNodes.TryGetValue(contextAttribute.GraphType, out var graphMenuNodes))
+                    {
+                        graphMenuNodes = new Dictionary<string, Type>();
+                        allMenuNodes[contextAttribute.GraphType] = graphMenuNodes;
+                    }
+                    graphMenuNodes[menuAttribute.MenuName] = nodeType;
+                }
+            }
+
+            return allMenuNodes;
+        }
+
+        private Dictionary<string, Type> availableMenuNodes;
+
+        public ScriptableGraphView()
         {
             this.StretchToParentSize();
 
@@ -32,20 +69,6 @@ namespace Contracts.Scripting.Graph
             Add(grid);
             grid.SendToBack();
 
-            Graph = graph;
-
-            foreach (var nodeSave in Graph.Nodes)
-            {
-                var node = LoadNode(nodeSave);
-                AddElement(node);
-            }
-
-            foreach (var edgeSave in Graph.Edges)
-            {
-                var edge = LoadEdge(edgeSave);
-                AddElement(edge);
-            }
-
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
         }
 
@@ -54,53 +77,20 @@ namespace Contracts.Scripting.Graph
             contentViewContainer.transform.position = new Vector3(layout.width / 2, layout.height / 2, 0);
         }
 
-        private void EnsureCachedNodeTypes()
+        public override void BuildContextualMenu(ContextualMenuPopulateEvent evt)
         {
-            var graphType = Graph.GetType();
-            if (cachedNodeTypes.ContainsKey(graphType))
-                return;
-
-            var nodeTypes = new List<NodeAttributeComposition>();
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            Vector2 localMousePosition = contentViewContainer.WorldToLocal(evt.mousePosition);
+            foreach (var (menuName, nodeType) in availableMenuNodes)
             {
-                foreach (var type in assembly.GetTypes())
+                evt.menu.AppendAction(menuName, (action) =>
                 {
-                    var menuAttribute = type.GetCustomAttribute<NodeMenuAttribute>();
-                    if (menuAttribute == null)
-                    {
-                        continue;
-                    }
-
-                    var contextAttribute = type.GetCustomAttribute<NodeContextAttribute>();
-                    if (contextAttribute != null && !contextAttribute.Contexts.Contains(Graph.GetType()))
-                    {
-                        continue;
-                    }
-
-                    nodeTypes.Add(new NodeAttributeComposition()
-                    {
-                        Type = type,
-                        Menu = menuAttribute,
-                        Context = contextAttribute,
-                    });
-                }
-            }
-            cachedNodeTypes.Add(graphType, nodeTypes);
-        }
-
-        private new void BuildContextualMenu(ContextualMenuPopulateEvent populateEvent)
-        {
-            EnsureCachedNodeTypes();
-
-            Vector2 localMousePosition = contentViewContainer.WorldToLocal(populateEvent.mousePosition);
-
-            foreach (var composition in cachedNodeTypes[Graph.GetType()])
-            {
-                populateEvent.menu.AppendAction(composition.Menu.MenuName, (action) => {
-                    var node = CreateNode(composition.Type, new Rect(localMousePosition, Vector2.zero));
+                    var node = CreateNode(nodeType, new Rect(localMousePosition, Vector2.zero));
                     AddElement(node);
                 });
             }
+            evt.menu.AppendSeparator();
+
+            base.BuildContextualMenu(evt);
         }
 
         public override List<Port> GetCompatiblePorts(Port startPort, NodeAdapter nodeAdapter)
@@ -136,23 +126,23 @@ namespace Contracts.Scripting.Graph
             return node;
         }
 
-        private ScriptableGraphNode LoadNode(NodeSaveData nodeSave)
+        private ScriptableGraphNode LoadNode(ScriptableGraphNodeModel model)
         {
-            var nodeType = Type.GetType(nodeSave.Type);
-            var node = CreateNode(nodeType, nodeSave.Position);
-            node.Load(nodeSave);
+            var nodeType = Type.GetType(model.Type);
+            var node = CreateNode(nodeType, model.Position);
+            node.Load(model);
             node.RefreshPorts();
             node.RefreshExpandedState();
             return node;
         }
 
-        private Edge LoadEdge(EdgeSaveData edgeSave)
+        private Edge LoadEdge(ScriptableGraphEdgeModel model)
         {
-            var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.OutputNodeGuid);
-            var outputPort = outputNode.outputContainer.Q<Port>(edgeSave.OutputPortName);
+            var outputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == model.OutputNodeGuid);
+            var outputPort = outputNode.outputContainer.Q<Port>(model.OutputPortName);
 
-            var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == edgeSave.InputNodeGuid);
-            var inputPort = inputNode.inputContainer.Q<Port>(edgeSave.InputPortName);
+            var inputNode = graphElements.Where((element) => element is ScriptableGraphNode).Select((element) => element as ScriptableGraphNode).First((node) => node.Guid == model.InputNodeGuid);
+            var inputPort = inputNode.inputContainer.Q<Port>(model.InputPortName);
 
             var edge = new Edge
             {
@@ -166,36 +156,56 @@ namespace Contracts.Scripting.Graph
             return edge;
         }
 
-        public void SaveGraph()
+        public void Load(ScriptableGraphModel model, Type graphType)
         {
-            Graph.Nodes.Clear();
-            Graph.Edges.Clear();
+            allMenuNodes.TryGetValue(graphType, out var menuNodes);
+            if (menuNodes == null)
+            {
+                throw new ArgumentException($"No node contexts found for graph type {graphType}");
+            }
+            availableMenuNodes = menuNodes;
 
+            var elementsToRemove = graphElements.ToArray();
+            foreach (var element in elementsToRemove)
+            {
+                RemoveElement(element);
+            }
+
+            foreach (var nodeModel in model.Nodes)
+            {
+                var node = LoadNode(nodeModel);
+                AddElement(node);
+            }
+            foreach (var edgeModel in model.Edges)
+            {
+                var edge = LoadEdge(edgeModel);
+                AddElement(edge);
+            }
+        }
+
+        public ScriptableGraphModel Save()
+        {
+            var nodes = new List<ScriptableGraphNodeModel>();
+            var edges = new List<ScriptableGraphEdgeModel>();
             foreach (var element in graphElements)
             {
                 if (element is ScriptableGraphNode node)
                 {
-                    Graph.Nodes.Add(node.Save());
+                    nodes.Add(node.Save());
                 }
                 else if (element is Edge edge)
                 {
                     var outputNode = edge.output.node as ScriptableGraphNode;
                     var inputNode = edge.input.node as ScriptableGraphNode;
-                    var edgeSave = new EdgeSaveData(
+                    var model = new ScriptableGraphEdgeModel(
                         outputNode.Guid,
-                        edge.output.portName,
                         inputNode.Guid,
+                        edge.output.portName,
                         edge.input.portName);
-                    Graph.Edges.Add(edgeSave);
+                    edges.Add(model);
                 }
             }
+            return new ScriptableGraphModel(nodes, edges);
         }
-    }
-
-    class NodeAttributeComposition
-    {
-        public Type Type;
-        public NodeMenuAttribute Menu;
-        public NodeContextAttribute Context;
     }
 }

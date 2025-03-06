@@ -4,8 +4,6 @@ using UnityEngine.UIElements;
 using UnityEditor.UIElements;
 using System;
 using System.Reflection;
-using System.Linq;
-using System.Collections.Generic;
 
 namespace Contracts
 {

@@ -1,6 +1,3 @@
-
-using System;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -12,6 +9,10 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Resizable)]
     public class CompositeConditionNode : ScriptableGraphNode, IConditionNode
     {
+        public const string SubconditionsPortName = "Subconditions";
+        public const string SatisfiedPortName = "Satisfied";
+        public const string DissatisfiedPortName = "Dissatisfied";
+
         public ScriptableCondition Condition => condition;
 
         private CompositeScriptableCondition condition;
@@ -32,18 +33,18 @@ namespace Contracts.Scripting.Graph
             inputContainer.Add(modeField);
 
             // Add an input port for the subconditions.
-            subconditionsPort = ObservablePort.Create<Edge>("Subconditions", Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCondition));
+            subconditionsPort = ObservablePort.Create<Edge>(SubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ScriptableCondition));
             inputContainer.Add(subconditionsPort);
 
             subconditionsPort.Connected += HandlePortConnection;
             subconditionsPort.Disconnected += HandlePortDisconnection;
 
             // Add an output port for if the condition is satisfied.
-            satisfiedPort = ObservablePort.Create<Edge>("Satisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
+            satisfiedPort = ObservablePort.Create<Edge>(SatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
             outputContainer.Add(satisfiedPort);
 
             // Add an output port for if the condition is dissatisfied.
-            dissatisfiedPort = ObservablePort.Create<Edge>("Dissatisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
+            dissatisfiedPort = ObservablePort.Create<Edge>(DissatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
             outputContainer.Add(dissatisfiedPort);
         }
 
@@ -57,17 +58,17 @@ namespace Contracts.Scripting.Graph
 
         }
 
-        public override NodeSaveData Save()
+        public override ScriptableGraphNodeModel Save()
         {
-            var nodeSave = base.Save();
-            nodeSave.Value = condition;
-            return nodeSave;
+            var model = base.Save();
+            model.Asset = condition;
+            return model;
         }
 
-        public override void Load(NodeSaveData saveData)
+        public override void Load(ScriptableGraphNodeModel model)
         {
-            base.Load(saveData);
-            condition = (CompositeScriptableCondition)saveData.Value;
+            base.Load(model);
+            condition = (CompositeScriptableCondition)model.Asset;
         }
     }
 }

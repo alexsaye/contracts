@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
-using UnityEditor.Search;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -16,6 +15,9 @@ namespace Contracts.Scripting.Graph
     [NodeCapabilities(~Capabilities.Resizable)]
     public class ConditionNode : ScriptableGraphNode, IConditionNode
     {
+        public const string SatisfiedPortName = "Satisfied";
+        public const string DissatisfiedPortName = "Dissatisfied";
+
         private static readonly IReadOnlyDictionary<string, Type> conditionTypes = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type => type.IsSubclassOf(typeof(ScriptableCondition)) && !type.IsAbstract)
@@ -28,7 +30,6 @@ namespace Contracts.Scripting.Graph
 
         private readonly List<VisualElement> conditionElements = new();
         private readonly DropdownField typeField;
-        private readonly UnityEditor.Search.ObjectField assetField;
         private readonly ObservablePort satisfiedPort;
         private readonly ObservablePort dissatisfiedPort;
 
@@ -41,44 +42,23 @@ namespace Contracts.Scripting.Graph
             typeField = new(conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
             inputContainer.Add(typeField);
 
-            // Add an object field to select a condition asset.
-            assetField = new()
-            {
-                objectType = typeof(ScriptableCondition),
-                searchContext = SearchService.CreateContext("Assets"),
-            };
-            inputContainer.Add(assetField);
-
             // If the type field is given a valid type, create a new condition instance of that type and clear the asset field.
             typeField.RegisterValueChangedCallback((e) =>
             {
                 if (!string.IsNullOrEmpty(e.newValue))
                 {
-                    assetField.value = null;
                     condition = (ScriptableCondition)ScriptableObject.CreateInstance(conditionTypes[e.newValue]);
                 }
                 RefreshConditionElements();
                 ReconnectSatisfactionPorts();
             });
 
-            // If the asset field is given a valid asset, set the condition instance to the selected asset and clear the type field.
-            assetField.RegisterValueChangedCallback((e) =>
-            {
-                if (e.newValue != null)
-                {
-                    typeField.index = -1;
-                    condition = (ScriptableCondition)e.newValue;
-                }
-                RefreshConditionElements();
-                ReconnectSatisfactionPorts();
-            });
-
             // Add an output port for if the condition is satisfied.
-            satisfiedPort = ObservablePort.Create<Edge>("Satisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
+            satisfiedPort = ObservablePort.Create<Edge>(SatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
             outputContainer.Add(satisfiedPort);
 
             // Add an output port for if the condition is dissatisfied.
-            dissatisfiedPort = ObservablePort.Create<Edge>("Dissatisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
+            dissatisfiedPort = ObservablePort.Create<Edge>(DissatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
             outputContainer.Add(dissatisfiedPort);
         }
 
@@ -151,29 +131,23 @@ namespace Contracts.Scripting.Graph
             }
         }
 
-        public override NodeSaveData Save()
+        public override ScriptableGraphNodeModel Save()
         {
-            var nodeSave = base.Save();
-            nodeSave.Value = condition;
-            return nodeSave;
+            var model = base.Save();
+            model.Asset = condition;
+            return model;
         }
 
-        public override void Load(NodeSaveData nodeSave)
+        public override void Load(ScriptableGraphNodeModel model)
         {
-            base.Load(nodeSave);
-            if (nodeSave.Value != null)
+            base.Load(model);
+            if (model.Asset != null)
             {
-                condition = (ScriptableCondition)nodeSave.Value;
-                if (AssetDatabase.Contains(condition))
-                {
-                    // The condition is a separate game asset, so update the asset field.
-                    assetField.value = condition;
-                }
-                else
-                {
-                    // The condition is nested within the graph, so update the type field.
-                    typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
-                }
+                // Clone a new working copy of the condition so that changes need to be manually saved.
+                condition = UnityEngine.Object.Instantiate((ScriptableCondition)model.Asset);
+
+                // The condition is nested within the graph, so update the type field.
+                typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
             }
             RefreshConditionElements();
         }

@@ -1,5 +1,6 @@
+using System.Linq;
 using UnityEngine;
-using UnityEngine.UIElements;
+using UnityEngine.Events;
 
 namespace Contracts.Scripting.Graph
 {
@@ -8,13 +9,44 @@ namespace Contracts.Scripting.Graph
     {
         private void Awake()
         {
-            // Add a default contract node.
-            var contractNode = new NodeSaveData(typeof(ContractNode), new Rect(300, 0, 0, 0));
-            Nodes.Add(contractNode);
+            // Create the required contract node, plus one condition node for convenience.
+            var spacing = 300;
+            var contractNode = new ScriptableGraphNodeModel(typeof(ContractNode), new Rect(spacing, 0, 0, 0));
+            var conditionNode = new ScriptableGraphNodeModel(typeof(ConditionNode), new Rect(-spacing, 0, 0, 0));
 
-            // Add a default condition node.
-            var conditionNode = new NodeSaveData(typeof(ConditionNode), new Rect(-300, 0, 0, 0));
-            Nodes.Add(conditionNode);
+            // Link the nodes together through the satisfied port as a basic example.
+            var satisfiedEdge = new ScriptableGraphEdgeModel(
+                conditionNode.Guid,
+                contractNode.Guid,
+                ConditionNode.SatisfiedPortName,
+                ContractNode.FulfillPortName);
+
+            // Set the default model.
+            Model = new ScriptableGraphModel(
+                new ScriptableGraphNodeModel[]
+                {
+                    contractNode,
+                    conditionNode
+                },
+                new ScriptableGraphEdgeModel[]
+                {
+                    satisfiedEdge
+                });
+        }
+
+        public IContract Build(UnityEvent updated)
+        {
+            Debug.Log($"Building contract from graph {name}...");
+
+            // Find the contract node.
+            var contractNode = Model.Nodes.First((node) => node.IsType(typeof(ContractNode)));
+
+            // Build the contract from the node asset, which will cascade through and build its conditions.
+            var contractAsset = (ScriptableContract)contractNode.Asset;
+            var contract = contractAsset.Build(updated);
+
+            Debug.Log($"Built contract from graph {name}");
+            return contract;
         }
     }
 }
