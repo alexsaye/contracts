@@ -5,7 +5,7 @@ using UnityEngine.Events;
 namespace Contracts.Scripting.Graph
 {
     [CreateAssetMenu(fileName = "New Contract Graph", menuName = "Contracts/Graph/Contract Graph")]
-    public class ContractGraph : ScriptableGraph
+    public class ScriptableContractGraph : ScriptableGraph
     {
         private void Awake()
         {
@@ -18,8 +18,8 @@ namespace Contracts.Scripting.Graph
             var satisfiedEdge = new ScriptableGraphEdgeModel(
                 conditionNode.Guid,
                 contractNode.Guid,
-                ConditionNode.SatisfiedPortName,
-                ContractNode.FulfillPortName);
+                ConditionNode.OutputPortName,
+                ContractNode.InputFulfillPortName);
 
             // Set the default model.
             Model = new ScriptableGraphModel(

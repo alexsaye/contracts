@@ -29,6 +29,8 @@ namespace Contracts.Scripting.Graph
         public string Type;
         public Rect Position;
         public string Guid;
+
+        [SerializeReference]
         public ScriptableObject Asset;
 
         public ScriptableGraphNodeModel(Type type, Rect position, string guid, ScriptableObject asset = null)
@@ -51,6 +53,11 @@ namespace Contracts.Scripting.Graph
         {
             return type.AssemblyQualifiedName == Type;
         }
+
+        public override string ToString()
+        {
+            return $"{{ Type: {Type}, Position: {Position}, Guid: {Guid}, Asset: {Asset} }}";
+        }
     }
 
     [Serializable]
@@ -67,6 +74,12 @@ namespace Contracts.Scripting.Graph
             InputNodeGuid = inputNodeGuid;
             OutputPortName = outputPortName;
             InputPortName = inputPortName;
+        }
+
+        public override string ToString()
+        {
+            // return "From output to input"
+            return $"{{ Output: {OutputNodeGuid}@{OutputPortName}, Input: {InputNodeGuid}@{InputPortName} }}";
         }
     }
 }

@@ -14,58 +14,27 @@ namespace Contracts.Scripting
         public enum CompositeMode
         {
             All,
-            Any,
+            Any
         }
 
         [SerializeField]
         private CompositeMode mode = CompositeMode.All;
 
         [SerializeField]
-        private List<ScriptableCondition> expectSatisfied;
-
-        [SerializeField]
-        private List<ScriptableCondition> expectDissatisfied;
-
-        public void SetMode(CompositeMode mode)
-        {
-            this.mode = mode;
-        }
-
-        public void Add(ScriptableCondition condition)
-        {
-            if (expectSatisfied == null)
-            {
-                expectSatisfied = new();
-            }
-            expectSatisfied.Add(condition);
-        }
-
-        public void Remove(ScriptableCondition condition)
-        {
-            if (expectSatisfied != null)
-            {
-                expectSatisfied.Remove(condition);
-            }
-        }
+        private List<ScriptableCondition> subconditions;
 
         public override ICondition Build(UnityEvent updated)
         {
             // Build all the subconditions.
-            var expectSatisfied = this.expectSatisfied.Select(condition => condition.Build(updated)).ToArray();
-            var expectDissatisfied = this.expectDissatisfied.Select(condition => condition.Build(updated)).ToArray();
+            var subconditions = this.subconditions.Select(condition => condition.Build(updated)).ToArray();
 
             // Create the composite condition from the conditions.
-            return Condition.Composite(mode switch
+            return mode switch
             {
-                CompositeMode.All => () => expectSatisfied.All(condition => condition.State) && expectDissatisfied.All(condition => !condition.State),
-                CompositeMode.Any => () => expectSatisfied.Any(condition => condition.State) || expectDissatisfied.Any(condition => !condition.State),
+                CompositeMode.All => Condition.All(subconditions),
+                CompositeMode.Any => Condition.Any(subconditions),
                 _ => throw new NotImplementedException(),
-            }, expectSatisfied);
-        }
-
-        private void OnValidate()
-        {
-            // TODO: disallow same condition in satisfied and dissatisfied.
+            };
         }
     }
 }

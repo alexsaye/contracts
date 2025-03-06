@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -11,27 +10,24 @@ using UnityEngine.UIElements;
 namespace Contracts.Scripting.Graph
 {
     [NodeMenu("Condition")]
-    [NodeContext(typeof(ContractGraph))]
+    [NodeContext(typeof(ScriptableContractGraph))]
     [NodeCapabilities(~Capabilities.Resizable)]
     public class ConditionNode : ScriptableGraphNode, IConditionNode
     {
-        public const string SatisfiedPortName = "Satisfied";
-        public const string DissatisfiedPortName = "Dissatisfied";
+        public const string OutputPortName = "Satisfied";
 
-        private static readonly IReadOnlyDictionary<string, Type> conditionTypes = AppDomain.CurrentDomain.GetAssemblies()
+        private static readonly IReadOnlyDictionary<string, System.Type> conditionTypes = System.AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type => type.IsSubclassOf(typeof(ScriptableCondition)) && !type.IsAbstract)
+                .Where(type => type != typeof(CompositeScriptableCondition))
                 .ToDictionary(type => type.Name, type => type);
 
-        public ScriptableCondition Condition => condition;
-
-        private ScriptableCondition condition;
-        private SerializedObject serializedCondition;
+        public ScriptableCondition Condition => serializedObject != null ? (ScriptableCondition)serializedObject.targetObject : null;
+        private SerializedObject serializedObject;
 
         private readonly List<VisualElement> conditionElements = new();
         private readonly DropdownField typeField;
-        private readonly ObservablePort satisfiedPort;
-        private readonly ObservablePort dissatisfiedPort;
+        private readonly ObservablePort outputPort;
 
         public ConditionNode() : base()
         {
@@ -45,21 +41,14 @@ namespace Contracts.Scripting.Graph
             // If the type field is given a valid type, create a new condition instance of that type and clear the asset field.
             typeField.RegisterValueChangedCallback((e) =>
             {
-                if (!string.IsNullOrEmpty(e.newValue))
-                {
-                    condition = (ScriptableCondition)ScriptableObject.CreateInstance(conditionTypes[e.newValue]);
-                }
-                RefreshConditionElements();
-                ReconnectSatisfactionPorts();
+                var selectedCondition = string.IsNullOrEmpty(e.newValue) ? null : (ScriptableCondition)ScriptableObject.CreateInstance(conditionTypes[e.newValue]);
+                ChangeCondition(selectedCondition);
+                Reconnect();
             });
 
-            // Add an output port for if the condition is satisfied.
-            satisfiedPort = ObservablePort.Create<Edge>(SatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
-            outputContainer.Add(satisfiedPort);
-
-            // Add an output port for if the condition is dissatisfied.
-            dissatisfiedPort = ObservablePort.Create<Edge>(DissatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCondition));
-            outputContainer.Add(dissatisfiedPort);
+            // Add an output port for when the condition is satisfied.
+            outputPort = ObservablePort.Create<Edge>(OutputPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(IConditionNode));
+            outputContainer.Add(outputPort);
         }
 
         private string FormatConditionName(string name)
@@ -79,7 +68,7 @@ namespace Contracts.Scripting.Graph
             return string.Join(" ", wordsToJoin);
         }
 
-        private void RefreshConditionElements()
+        private void ChangeCondition(ScriptableCondition condition)
         {
             // Clear existing elements.
             foreach (var element in conditionElements)
@@ -91,14 +80,16 @@ namespace Contracts.Scripting.Graph
             // If there is no condition, nothing needs to be added.
             if (condition == null)
             {
+                serializedObject = null;
                 return;
             }
 
-            // Serialize the condition to create property inputs with data binding.
-            serializedCondition = new SerializedObject(condition);
+            // Serialize the condition for data binding.
+            serializedObject = new SerializedObject(condition);
+            mainContainer.Bind(serializedObject);
 
             // Iterate over all the visible serialized properties of the condition.
-            var iterator = serializedCondition.GetIterator();
+            var iterator = serializedObject.GetIterator();
             iterator.NextVisible(true);
             while (iterator.NextVisible(false))
             {
@@ -107,24 +98,19 @@ namespace Contracts.Scripting.Graph
                 extensionContainer.Add(field);
                 conditionElements.Add(field);
             }
-            mainContainer.Bind(serializedCondition);
 
             RefreshPorts();
             RefreshExpandedState();
         }
 
-        // TODO: this might be necessary to forward changes to the composite nodes. review
-        private void ReconnectSatisfactionPorts()
+        /// <summary>
+        /// Disconnects then reconnects ports, so that all connections treat this as a newly connected node.
+        /// TODO: maybe actually remove the node and replace with a new one?
+        /// </summary>
+        private void Reconnect()
         {
             // Reconnect the satisfied port to propagate the condition change.
-            foreach (var edge in satisfiedPort.connections)
-            {
-                edge.input.Disconnect(edge);
-                edge.input.Connect(edge);
-            }
-
-            // Reconnect the dissatisfied port to propagate the condition change.
-            foreach (var edge in dissatisfiedPort.connections)
+            foreach (var edge in outputPort.connections)
             {
                 edge.input.Disconnect(edge);
                 edge.input.Connect(edge);
@@ -134,22 +120,23 @@ namespace Contracts.Scripting.Graph
         public override ScriptableGraphNodeModel Save()
         {
             var model = base.Save();
-            model.Asset = condition;
+            model.Asset = Condition;
             return model;
         }
 
         public override void Load(ScriptableGraphNodeModel model)
         {
             base.Load(model);
-            if (model.Asset != null)
+            if (model != null && model.Asset is ScriptableCondition loadedCondition)
             {
-                // Clone a new working copy of the condition so that changes need to be manually saved.
-                condition = UnityEngine.Object.Instantiate((ScriptableCondition)model.Asset);
-
-                // The condition is nested within the graph, so update the type field.
-                typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
+                typeField.index = conditionTypes.Keys.ToList().IndexOf(loadedCondition.GetType().Name);
+                ChangeCondition(loadedCondition);
             }
-            RefreshConditionElements();
+            else
+            {
+                typeField.index = -1;
+                ChangeCondition(null);
+            }
         }
     }
 }

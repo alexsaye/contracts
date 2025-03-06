@@ -12,16 +12,12 @@ namespace Contracts.Scripting.Graph
 
         public virtual ScriptableGraphNodeModel Save()
         {
-            if (Guid == null)
-            {
-                Guid = System.Guid.NewGuid().ToString();
-            }
             return new ScriptableGraphNodeModel(GetType(), GetPosition(), Guid);
         }
 
-        public virtual void Load(ScriptableGraphNodeModel model)
+        public virtual void Load(ScriptableGraphNodeModel model = null)
         {
-            Guid = model.Guid;
+            Guid = model != null ? model.Guid : System.Guid.NewGuid().ToString();
         }
     }
 }

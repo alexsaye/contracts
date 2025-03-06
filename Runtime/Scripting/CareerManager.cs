@@ -1,3 +1,4 @@
+using Contracts.Scripting.Graph;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -10,9 +11,13 @@ namespace Contracts.Scripting
     /// </summary>
     public class CareerManager : MonoBehaviour
     {
-        [Tooltip("The initial scripted contracts to issue when this issuer is enabled.")]
+        [Tooltip("The initial scripted progression graphs to issue when this issuer is enabled.")]
         [SerializeField]
-        private List<ScriptableContract> initialContracts;
+        private List<ScriptableCareerProgressionGraph> initialProgressionGraphs;
+
+        [Tooltip("The initial scripted progressions to issue when this issuer is enabled.")]
+        [SerializeField]
+        private List<ScriptableCareerProgression> initialProgressions;
 
         /// <summary>
         /// The managed career.
@@ -41,8 +46,15 @@ namespace Contracts.Scripting
             career = new Career();
             career.Issued += ForwardIssued;
 
-            // Build and issue all initial contracts.
-            var progressions = initialContracts.Select(scriptedContract => scriptedContract.Build(Updated));
+            // Build and issue all initial progression graphs.
+            var progressionsFromGraphs = initialProgressionGraphs.SelectMany(graph => graph.Build(Updated));
+            foreach (var progression in progressionsFromGraphs)
+            {
+                career.Issue(progression);
+            }
+
+            // Build and issue all initial progressions.
+            var progressions = initialProgressions.Select(scriptedContract => scriptedContract.Build(Updated));
             foreach (var progression in progressions)
             {
                 career.Issue(progression);

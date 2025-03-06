@@ -6,7 +6,7 @@ using UnityEngine.Events;
 namespace Contracts.Scripting.Graph
 {
     [CreateAssetMenu(fileName = "New Career Progression Graph", menuName = "Contracts/Graph/Career Progression Graph")]
-    public class CareerProgressionGraph : ScriptableGraph
+    public class ScriptableCareerProgressionGraph : ScriptableGraph
     {
         private void Awake()
         {
@@ -20,14 +20,14 @@ namespace Contracts.Scripting.Graph
             var hiredEdge = new ScriptableGraphEdgeModel(
                 careerStartNode.Guid,
                 careerProgressionNode.Guid,
-                CareerStartNode.HiredPortName,
-                CareerProgressionNode.IssuePortName);
+                CareerStartNode.OutputPortName,
+                CareerProgressionNode.InputPortName);
 
             var fulfilledEdge = new ScriptableGraphEdgeModel(
                 careerProgressionNode.Guid,
                 careerEndNode.Guid,
-                CareerProgressionNode.FulfilledPortName,
-                CareerEndNode.RetirePortName);
+                CareerProgressionNode.OutputFulfillPortName,
+                CareerEndNode.InputPortName);
 
             // Set the default model.
             Model = new ScriptableGraphModel(
@@ -50,10 +50,15 @@ namespace Contracts.Scripting.Graph
 
             // Find the progression nodes directly connected to the start node
             var startNode = Model.Nodes.First((node) => node.IsType(typeof(CareerStartNode)));
+            Debug.Log($"Found start node: {startNode}");
+
             var endNode = Model.Nodes.First((node) => node.IsType(typeof(CareerEndNode)));
+            Debug.Log($"Found end node: {endNode}");
+
             var progressionNodes = Model.Edges
-                .Where((edge) => edge.OutputNodeGuid == startNode.Guid && edge.InputNodeGuid != endNode.Guid) // TODO: Can we prevent the start and end node from being directly connected?
+                .Where((edge) => edge.OutputNodeGuid == startNode.Guid && edge.InputNodeGuid != endNode.Guid)
                 .Select((edge) => Model.Nodes.First((node) => node.Guid == edge.InputNodeGuid));
+            Debug.Log($"Found {progressionNodes.Count()} progression nodes.");
 
             // Build the progressions from the node assets.
             var progressionAssets = progressionNodes.Select((node) => (ScriptableCareerProgression)node.Asset);

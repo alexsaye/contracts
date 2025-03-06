@@ -4,13 +4,13 @@ using UnityEngine.UIElements;
 
 namespace Contracts.Scripting.Graph
 {
-    [NodeContext(typeof(CareerProgressionGraph))]
+    [NodeContext(typeof(ScriptableCareerProgressionGraph))]
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     public class CareerStartNode : ScriptableGraphNode
     {
-        public const string HiredPortName = "Hired";
+        public const string OutputPortName = "Hired";
 
-        private readonly Port hiredPort;
+        private readonly Port outputPort;
 
         public CareerStartNode() : base()
         {
@@ -18,8 +18,8 @@ namespace Contracts.Scripting.Graph
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
             // Add an output port for the first career progression nodes.
-            hiredPort = ObservablePort.Create<Edge>(HiredPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
-            outputContainer.Add(hiredPort);
+            outputPort = ObservablePort.Create<Edge>(OutputPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ScriptableCareerProgression));
+            outputContainer.Add(outputPort);
         }
     }
 }

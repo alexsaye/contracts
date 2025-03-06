@@ -85,6 +85,9 @@ namespace Contracts.Scripting.Graph
                 evt.menu.AppendAction(menuName, (action) =>
                 {
                     var node = CreateNode(nodeType, new Rect(localMousePosition, Vector2.zero));
+                    node.Load();
+                    node.RefreshPorts();
+                    node.RefreshExpandedState();
                     AddElement(node);
                 });
             }
@@ -114,15 +117,11 @@ namespace Contracts.Scripting.Graph
         {
             var node = (ScriptableGraphNode)Activator.CreateInstance(type);
             node.SetPosition(position);
-
             var capabilitiesAttribute = type.GetCustomAttribute<NodeCapabilitiesAttribute>();
             if (capabilitiesAttribute != null)
             {
                 node.capabilities = capabilitiesAttribute.Capabilities;
             }
-
-            node.RefreshPorts();
-            node.RefreshExpandedState();
             return node;
         }
 
@@ -191,18 +190,21 @@ namespace Contracts.Scripting.Graph
             {
                 if (element is ScriptableGraphNode node)
                 {
-                    nodes.Add(node.Save());
+                    var nodeModel = node.Save();
+                    nodes.Add(nodeModel);
+                    Debug.Log($"Saved node: {nodeModel}");
                 }
                 else if (element is Edge edge)
                 {
                     var outputNode = edge.output.node as ScriptableGraphNode;
                     var inputNode = edge.input.node as ScriptableGraphNode;
-                    var model = new ScriptableGraphEdgeModel(
+                    var edgeModel = new ScriptableGraphEdgeModel(
                         outputNode.Guid,
                         inputNode.Guid,
                         edge.output.portName,
                         edge.input.portName);
-                    edges.Add(model);
+                    edges.Add(edgeModel);
+                    Debug.Log($"Saved edge: {edgeModel}");
                 }
             }
             return new ScriptableGraphModel(nodes, edges);

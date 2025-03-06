@@ -1,3 +1,4 @@
+using Contracts.Scripting.Graph;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,8 +10,10 @@ namespace Contracts.Scripting
     public class ScriptableCareerProgression : ScriptableObject
     {
         [SerializeField]
+        private ScriptableContractGraph contractGraph;
+
+        [SerializeField]
         private ScriptableContract contract;
-        public ScriptableContract Contract => contract;
 
         [SerializeField]
         private List<ScriptableCareerProgression> nextOnFulfilled = new List<ScriptableCareerProgression>();
@@ -25,7 +28,25 @@ namespace Contracts.Scripting
             Debug.Log($"Building career progression {name}");
 
             // Build the contract so it can start evaluating its conditions.
-            var contract = this.contract.Build(updated);
+            IContract contract;
+            if (this.contract != null && contractGraph != null)
+            {
+                Debug.LogError("Cannot have both a contract and a contract graph.");
+                return null;
+            }
+            else if (this.contract != null)
+            {
+                contract = this.contract.Build(updated);
+            }
+            else if (contractGraph != null)
+            {
+                contract = contractGraph.Build(updated);
+            }
+            else
+            {
+                Debug.LogError("Must have either a contract or a contract graph.");
+                return null;
+            }
 
             // Set up the enumerations which will build the next progressions.
             var nextOnRejected = this.nextOnRejected.Select(nextOnRejected => nextOnRejected.Build(updated));
