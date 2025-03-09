@@ -1,8 +1,8 @@
-using Contracts.Scripting.Graph;
 using System.Collections.Generic;
-using System.Linq;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.UIElements;
 
 namespace Contracts.Scripting
 {
@@ -11,13 +11,12 @@ namespace Contracts.Scripting
     /// </summary>
     public class CareerManager : MonoBehaviour
     {
-        [Tooltip("The initial scripted progression graphs to issue when this issuer is enabled.")]
         [SerializeField]
-        private List<ScriptableCareerProgressionGraph> initialProgressionGraphs;
+        [Tooltip("The progression graph to use for the career. If an external graph is not provided, an internal graph will be created.")]
+        private CareerProgressionGraph graph;
 
-        [Tooltip("The initial scripted progressions to issue when this issuer is enabled.")]
         [SerializeField]
-        private List<ScriptableCareerProgression> initialProgressions;
+        private ContractGraph test;
 
         /// <summary>
         /// The managed career.
@@ -41,20 +40,25 @@ namespace Contracts.Scripting
         [HideInInspector]
         private UnityEvent Updated;
 
+        private void Reset()
+        {
+            CreateInternalGraph();
+        }
+
+        private void OnValidate()
+        {
+            if (graph == null)
+            {
+                CreateInternalGraph();
+            }
+        }
+
         private void OnEnable()
         {
             career = new Career();
             career.Issued += ForwardIssued;
 
-            // Build and issue all initial progression graphs.
-            var progressionsFromGraphs = initialProgressionGraphs.SelectMany(graph => graph.Build(Updated));
-            foreach (var progression in progressionsFromGraphs)
-            {
-                career.Issue(progression);
-            }
-
-            // Build and issue all initial progressions.
-            var progressions = initialProgressions.Select(scriptedContract => scriptedContract.Build(Updated));
+            var progressions = graph.Build(Updated);
             foreach (var progression in progressions)
             {
                 career.Issue(progression);
@@ -72,9 +76,19 @@ namespace Contracts.Scripting
             Updated.Invoke();
         }
 
+        private void CreateInternalGraph()
+        {
+            Debug.Log("Creating an internal graph.");
+            graph = ScriptableObject.CreateInstance<CareerProgressionGraph>();
+            graph.name = "Internal Graph";
+
+            test = ScriptableObject.CreateInstance<ContractGraph>();
+            test.name = "Internal Contract Graph";
+        }
+
         private void ForwardIssued(object sender, IssuedEventArgs e)
         {
-            Debug.Log($"Issued contract: {e.Contract}");
+            Debug.Log($"Issuing contract: {e.Contract}");
             Issued.Invoke(e.Contract);
         }
     }
