@@ -6,6 +6,7 @@ using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
+    [Serializable]
     public class CompositeConditionBuilder : ConditionBuilder
     {
         [Serializable]
@@ -21,6 +22,16 @@ namespace Contracts.Scripting
 
         [SerializeField]
         private List<ConditionBuilder> subconditions;
+
+        public CompositeConditionBuilder() : this(CompositeMode.All, new List<ConditionBuilder>())
+        {
+        }
+
+        public CompositeConditionBuilder(CompositeMode mode, List<ConditionBuilder> subconditions)
+        {
+            this.mode = mode;
+            this.subconditions = subconditions;
+        }
 
         public override ICondition Build(UnityEvent updated)
         {

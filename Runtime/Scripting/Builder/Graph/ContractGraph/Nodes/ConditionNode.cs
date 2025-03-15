@@ -1,4 +1,5 @@
 using SimpleGraph;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -12,112 +13,103 @@ namespace Contracts.Scripting
     [NodeMenu("Condition")]
     [NodeContext(typeof(ContractGraph))]
     [NodeCapabilities(~Capabilities.Resizable)]
-    public class ConditionNode : SimpleGraphViewNode<ConditionBuilder>
+    public class ConditionNode : SimpleGraphNode
     {
         public const string OutputSatisfiedPortName = "Satisfied";
 
-        private static readonly IReadOnlyDictionary<string, System.Type> conditionTypes = System.AppDomain.CurrentDomain.GetAssemblies()
+        private static readonly IReadOnlyDictionary<string, Type> selectableBuilders = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type => type.IsSubclassOf(typeof(ConditionBuilder)) && !type.IsAbstract)
                 .Where(type => type != typeof(CompositeConditionBuilder))
                 .ToDictionary(type => type.Name, type => type);
 
-        private readonly List<VisualElement> conditionElements = new();
-        private readonly DropdownField typeField;
-        private readonly ObservablePort outputSatisfiedPort;
-
-        public ConditionNode() : base()
+        private static string FormatBuilderName(string key)
         {
-            title = "Condition";
-            titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
-
-            // Add a dropdown field to select a condition type.
-            typeField = new(conditionTypes.Keys.ToList(), -1, FormatConditionName, FormatConditionName);
-            inputContainer.Add(typeField);
-
-            // If the type field is given a valid type, create a new condition instance of that type and clear the asset field.
-            // TODO: maybe actually remove the node and replace with a new one?
-            typeField.RegisterValueChangedCallback((e) =>
-            {
-                ObjectReference = CreateObjectReference();
-                Reconnect();
-                RefreshPorts();
-                RefreshExpandedState();
-            });
-
-            // Add an output port for when the condition is satisfied.
-            outputSatisfiedPort = ObservablePort.Create<Edge>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Single, typeof(ConditionBuilder));
-            outputContainer.Add(outputSatisfiedPort);
-        }
-
-        private string FormatConditionName(string name)
-        {
-            if (string.IsNullOrEmpty(name))
+            if (string.IsNullOrEmpty(key))
             {
                 return "Select a type...";
             }
 
-            // Remove "ScriptableCondition" or "Condition" from the end of the name.
-            var words = Regex.Split(name, @"(?=[A-Z])");
-            var wordsToJoin = words[words.Length - 1].Equals("Condition")
-                ? words[words.Length - 2].Equals("Scriptable")
+            var words = Regex.Split(key, @"(?=[A-Z])");
+            var wordsToJoin = words[words.Length - 1].Equals("Builder")
+                ? words[words.Length - 2].Equals("Condition")
                     ? words.Take(words.Length - 2)
                     : words.Take(words.Length - 1)
                 : words;
             return string.Join(" ", wordsToJoin);
         }
 
-        /// <summary>
-        /// Disconnects then reconnects ports, so that all connections treat this as a newly connected node
-        /// </summary>
-        private void Reconnect()
+        private readonly List<VisualElement> renderedElements = new();
+        private readonly DropdownField typeField;
+        private readonly Port outputSatisfiedPort;
+
+        public ConditionNode() : base()
         {
-            // Reconnect the satisfied port to propagate the condition change.
-            foreach (var edge in outputSatisfiedPort.connections)
-            {
-                edge.input.Disconnect(edge);
-                edge.input.Connect(edge);
-            }
+            title = "Condition";
+            titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
+
+            // Add an output port for when the condition is satisfied.
+            outputSatisfiedPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
+            outputContainer.Add(outputSatisfiedPort);
+
+            // Add a dropdown type field to select a condition builder type.
+            typeField = new(selectableBuilders.Keys.ToList(), -1, FormatBuilderName, FormatBuilderName);
+            inputContainer.Add(typeField);
+
+            // When the type field is changed, change the condition builder to the selected type.
+            typeField.RegisterValueChangedCallback((e) => ReplaceBuilder(selectableBuilders[e.newValue]));
         }
 
-        protected override ConditionBuilder CreateObjectReference()
+        protected void ReplaceBuilder(Type type)
         {
-            var type = typeField.index >= 0 ? conditionTypes[typeField.value] : conditionTypes.Values.First();
-            return (ConditionBuilder)ScriptableObject.CreateInstance(type);
+            var builder = (ConditionBuilder)Activator.CreateInstance(type); ;
+            Debug.Log($"Created builder: {builder}");
+
+            SerializedNodeModel.FindPropertyRelative("value").managedReferenceValue = builder;
+            SerializedNodeModel.serializedObject.ApplyModifiedProperties();
+            RenderModel();
+            RefreshPorts();
+            RefreshExpandedState();
         }
 
-        protected override void RenderObjectReference()
+        protected override void RenderModel()
         {
-            // Clear any existing elements.
-            foreach (var element in conditionElements)
+            // Clear any elements which were rendered for the previous condition builder.
+            foreach (var element in renderedElements)
             {
                 element.RemoveFromHierarchy();
             }
-            conditionElements.Clear();
+            renderedElements.Clear();
 
-            // Set up the loaded condition's elements.
-            if (ObjectReference is ConditionBuilder condition)
-            {
-                // Show the condition type in the type field.
-                typeField.index = conditionTypes.Keys.ToList().IndexOf(condition.GetType().Name);
+            // Get the condition builder from the model.
+            var serializedValue = SerializedNodeModel.FindPropertyRelative("value");
+            var builder = serializedValue.managedReferenceValue;
 
-                // Iterate over all the visible serialized properties of the condition.
-                var iterator = SerializedObject.GetIterator();
-                iterator.NextVisible(true);
-                while (iterator.NextVisible(false))
-                {
-                    // Create an extension field for this property so that it can be customised within the graph.
-                    var field = iterator.CreateFieldElement();
-                    extensionContainer.Add(field);
-                    conditionElements.Add(field);
-                }
-                extensionContainer.Bind(SerializedObject);
-            }
-            else
+            // If there is no condition builder assigned, reset the type field to show the default message.
+            if (builder == null)
             {
-                // Clear the type field if there is no condition.
                 typeField.index = -1;
+                return;
             }
+
+            // Show the appropriate choice in the type field for the condition builder.
+            typeField.index = typeField.choices.IndexOf(builder.GetType().Name);
+
+            // Check whether the condition builder has any visible serialized properties.
+            var serializedProperty = serializedValue.Copy();
+            if (!serializedProperty.hasVisibleChildren || !serializedProperty.NextVisible(true))
+            {
+                return;
+            }
+
+            // Create bound property fields for all top level visible serialized properties of the condition builder.
+            do
+            {
+                var propertyField = new PropertyField(serializedProperty);
+                extensionContainer.Add(propertyField);
+                renderedElements.Add(propertyField);
+            } while (serializedProperty.NextVisible(false) && serializedProperty.depth > serializedValue.depth);
+            extensionContainer.Bind(SerializedNodeModel.serializedObject);
         }
     }
 }

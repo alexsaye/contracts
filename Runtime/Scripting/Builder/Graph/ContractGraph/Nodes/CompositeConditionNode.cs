@@ -1,6 +1,4 @@
-using NUnit.Framework.Constraints;
 using SimpleGraph;
-using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -11,60 +9,46 @@ namespace Contracts.Scripting
     [NodeMenu("Composite")]
     [NodeContext(typeof(ContractGraph))]
     [NodeCapabilities(~Capabilities.Resizable)]
-    public class CompositeConditionNode : SimpleGraphViewNode<ConditionBuilder>
+    public class CompositeConditionNode : SimpleGraphNode
     {
         public const string InputSubconditionsPortName = "Subconditions";
         public const string OutputSatisfiedPortName = "Satisfied";
 
-        public ConditionBuilder Condition => (ConditionBuilder)ObjectReference;
-
         private readonly EnumField modeField;
-        private readonly ObservablePort inputSubconditionsPort;
-        private readonly ObservablePort outputSatisfiedPort;
+        private readonly Port inputSubconditionsPort;
+        private readonly Port outputSatisfiedPort;
+
+        private CompositeConditionBuilder value;
 
         public CompositeConditionNode() : base()
         {
             title = "Composite";
 
             // Add an enum dropdown for selecting the composite mode.
-            modeField = new(CompositeConditionBuilder.CompositeMode.All)
-            {
-                bindingPath = "mode",
-            };
+            modeField = new();
             inputContainer.Add(modeField);
 
             // Add an input port for the subconditions.
-            inputSubconditionsPort = ObservablePort.Create<Edge>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(ConditionBuilder));
-            inputSubconditionsPort.Connected += HandleSubconditionConnected;
-            inputSubconditionsPort.Disconnected += HandleSubconditionDisconnected;
+            inputSubconditionsPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi);
             inputContainer.Add(inputSubconditionsPort);
 
             // Add an output port for if the composition is satisfied.
-            outputSatisfiedPort = ObservablePort.Create<Edge>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(ConditionBuilder));
+            outputSatisfiedPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputSatisfiedPort);
         }
 
-        private void HandleSubconditionConnected(object sender, PortConnectionEventArgs e)
+        protected override void RenderModel()
         {
-            var condition = (SimpleGraphViewNode<ConditionBuilder>)e.Edge.output.node;
-            var subconditionsProperty = SerializedObject.FindProperty("subconditions");
-            var index = subconditionsProperty.arraySize;
-            subconditionsProperty.InsertArrayElementAtIndex(index);
-            subconditionsProperty.GetArrayElementAtIndex(index).objectReferenceValue = condition.ObjectReference;
-            SerializedObject.ApplyModifiedProperties();
-            Debug.Log($"Composite {modeField.value} condition connected to{condition.ObjectReference} subcondition.");
+            modeField.bindingPath = SerializedNodeModel
+                .FindPropertyRelative("value")
+                .FindPropertyRelative("mode")
+                .propertyPath;
+            inputContainer.Bind(SerializedNodeModel.serializedObject);
         }
 
-        private void HandleSubconditionDisconnected(object sender, PortConnectionEventArgs e)
+        public override object GetDefaultValue()
         {
-            var subconditionsProperty = SerializedObject.FindProperty("subconditions");
-            subconditionsProperty.DeleteArrayElementAtIndex(subconditionsProperty.arraySize - 1);
-            SerializedObject.ApplyModifiedProperties();
-            Debug.Log($"Composite {modeField.value} condition subcondition disconnected.");
-        }
-        protected override void RenderObjectReference()
-        {
-            inputContainer.Bind(SerializedObject);
+            return new CompositeConditionBuilder();
         }
     }
 }

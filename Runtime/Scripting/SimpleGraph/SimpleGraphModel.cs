@@ -8,15 +8,20 @@ namespace SimpleGraph
     [Serializable]
     public class SimpleGraphModel
     {
-        [SerializeField]
-        private ScriptableGraphNodeModel[] nodes;
-        public IEnumerable<ScriptableGraphNodeModel> Nodes => nodes;        
+        public static SimpleGraphModel Create(IEnumerable<SimpleGraphNodeModel> nodes, IEnumerable<SimpleGraphEdgeModel> edges)
+        {
+            return new SimpleGraphModel(nodes, edges);
+        }
 
         [SerializeField]
-        private ScriptableGraphEdgeModel[] edges;
-        public IEnumerable<ScriptableGraphEdgeModel> Edges => edges;
+        private SimpleGraphNodeModel[] nodes;
+        public IEnumerable<SimpleGraphNodeModel> Nodes => nodes;        
 
-        public SimpleGraphModel(IEnumerable<ScriptableGraphNodeModel> nodes, IEnumerable<ScriptableGraphEdgeModel> edges)
+        [SerializeField]
+        private SimpleGraphEdgeModel[] edges;
+        public IEnumerable<SimpleGraphEdgeModel> Edges => edges;
+
+        internal SimpleGraphModel(IEnumerable<SimpleGraphNodeModel> nodes, IEnumerable<SimpleGraphEdgeModel> edges)
         {
             this.nodes = nodes.ToArray();
             this.edges = edges.ToArray();
@@ -24,99 +29,80 @@ namespace SimpleGraph
     }
 
     [Serializable]
-    public class ScriptableGraphNodeModel
+    public class SimpleGraphNodeModel
     {
-        /// <summary>
-        /// A unique identifier of the graph node for cross-referencing with the edge models.
-        /// </summary>
-        public string Guid;
+        public static SimpleGraphNodeModel Create<T>(Rect position, object value = null) where T : SimpleGraphNode
+        {
+            return new SimpleGraphNodeModel(typeof(T), position, value);
+        }
 
-        /// <summary>
-        /// The type of graph node that this model represents.
-        /// </summary>
-        public string Type;
+        [SerializeField]
+        private string guid;
+        public string Guid => guid;
 
-        /// <summary>
-        /// The position of the graph node in the graph view.
-        /// </summary>
-        public Rect Position;
+        [SerializeField]
+        private string type;
+        public string Type => type;
 
-        /// <summary>
-        /// The object referenced by this node.
-        /// </summary>
+        [SerializeField]
+        private Rect position;
+        public Rect Position => position;
+
         [SerializeReference]
-        public UnityEngine.Object ObjectReference;
+        private object value;
+        public object Value => value;
 
-        public ScriptableGraphNodeModel(string guid, Type type, Rect position, UnityEngine.Object objectReference = null)
+        internal SimpleGraphNodeModel(Type type, Rect position, object value = null)
         {
-            Guid = guid;
-            Type = type.AssemblyQualifiedName;
-            Position = position;
-            ObjectReference = objectReference;
-        }
-
-        public ScriptableGraphNodeModel(Type type, Rect position, UnityEngine.Object objectReference = null)
-        {
-            Guid = System.Guid.NewGuid().ToString();
-            Type = type.AssemblyQualifiedName;
-            Position = position;
-            ObjectReference = objectReference;
-        }
-
-        public ScriptableGraphNodeModel(ScriptableGraphNodeModel model)
-        {
-            Guid = model.Guid;
-            Type = model.Type;
-            Position = model.Position;
-            ObjectReference = model.ObjectReference;
-        }
-
-        public bool IsType(Type type)
-        {
-            return type.AssemblyQualifiedName == Type;
-        }
-
-        public override string ToString()
-        {
-            return $"{{ Type: {Type}, Asset: {ObjectReference}, Guid: {Guid} }}";
+            guid = System.Guid.NewGuid().ToString();
+            this.type = type.AssemblyQualifiedName;
+            this.position = position;
+            this.value = value;
         }
     }
 
     [Serializable]
-    public class ScriptableGraphEdgeModel
+    public class SimpleGraphEdgeModel
     {
+        public static SimpleGraphEdgeModel Create(SimpleGraphNodeModel outputNodeModel, SimpleGraphNodeModel inputNodeModel, string outputPortName, string inputPortName)
+        {
+            return new SimpleGraphEdgeModel(outputNodeModel.Guid, inputNodeModel.Guid, outputPortName, inputPortName);
+        }
+
+        [SerializeField]
+        private string outputNodeGuid;
         /// <summary>
         /// The id of the node on the output side of the port.
         /// </summary>
-        public string OutputNodeGuid;
+        public string OutputNodeGuid => outputNodeGuid;
 
+        [SerializeField]
+        private string inputNodeGuid;
         /// <summary>
         /// The id of the node on the input side of the port.
         /// </summary>
-        public string InputNodeGuid;
+        public string InputNodeGuid => inputNodeGuid;
 
+        [SerializeField]
+        private string outputPortName;
         /// <summary>
         /// The name of the output port on the output node.
         /// </summary>
-        public string OutputPortName;
+        public string OutputPortName => outputPortName;
 
+        [SerializeField]
+        private string inputPortName;
         /// <summary>
         /// The name of the input port on the input node.
         /// </summary> 
-        public string InputPortName;
+        public string InputPortName => inputPortName;
 
-        public ScriptableGraphEdgeModel(string outputNodeGuid, string inputNodeGuid, string outputPortName, string inputPortName)
+        internal SimpleGraphEdgeModel(string outputNodeGuid, string inputNodeGuid, string outputPortName, string inputPortName)
         {
-            OutputNodeGuid = outputNodeGuid;
-            InputNodeGuid = inputNodeGuid;
-            OutputPortName = outputPortName;
-            InputPortName = inputPortName;
-        }
-
-        public override string ToString()
-        {
-            // return "From output to input"
-            return $"{{ Output: {OutputPortName}, Input: {InputPortName} }}";
+            this.outputNodeGuid = outputNodeGuid;
+            this.inputNodeGuid = inputNodeGuid;
+            this.outputPortName = outputPortName;
+            this.inputPortName = inputPortName;
         }
     }
 }

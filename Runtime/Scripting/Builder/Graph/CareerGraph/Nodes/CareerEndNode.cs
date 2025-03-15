@@ -7,7 +7,7 @@ namespace Contracts.Scripting
 {
     [NodeContext(typeof(CareerProgressionGraph))]
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
-    public class CareerEndNode : SimpleGraphViewNode
+    public class CareerEndNode : SimpleGraphNode
     {
         public const string InputRetiredPortName = "Retired";
 
@@ -19,7 +19,7 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.6f, 0.3f));
 
             // Add an input port for the final career progression nodes.
-            inputPort = ObservablePort.Create<Edge>(InputRetiredPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi, typeof(CareerProgressionBuilder));
+            inputPort = SimpleGraphUtils.CreatePort<CareerProgressionBuilder>(InputRetiredPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi);
             inputContainer.Add(inputPort);
         }
     }

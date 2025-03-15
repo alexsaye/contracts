@@ -7,7 +7,7 @@ namespace Contracts.Scripting
 {
     [NodeContext(typeof(CareerProgressionGraph))]
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
-    public class CareerStartNode : SimpleGraphViewNode
+    public class CareerStartNode : SimpleGraphNode
     {
         public const string OutputHiredPortName = "Hired";
 
@@ -19,7 +19,7 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
             // Add an output port for the first career progression nodes.
-            outputPort = ObservablePort.Create<Edge>(OutputHiredPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi, typeof(CareerProgressionBuilder));
+            outputPort = SimpleGraphUtils.CreatePort<CareerProgressionBuilder>(OutputHiredPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputPort);
         }
     }

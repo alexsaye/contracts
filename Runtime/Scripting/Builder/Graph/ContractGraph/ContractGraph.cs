@@ -5,30 +5,30 @@ using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public class ContractGraph : SimpleGraphScriptableObject, IBuilder<IContract>
+    public class ContractGraph : SimpleGraphBehaviour, IBuilder<IContract>
     {
-        private void Awake()
+        protected override SimpleGraphModel CreateDefaultModel()
         {
             // Create the required contract node, plus one condition node for convenience.
             var spacing = 300;
-            var contractNode = new ScriptableGraphNodeModel(typeof(ContractNode), new Rect(spacing, 0, 0, 0));
-            var conditionNode = new ScriptableGraphNodeModel(typeof(ConditionNode), new Rect(-spacing, 0, 0, 0));
+            var contractNode = SimpleGraphNodeModel.Create<ContractNode>(new Rect(spacing, 0, 0, 0));
+            var conditionNode = SimpleGraphNodeModel.Create<ConditionNode>(new Rect(-spacing, 0, 0, 0));
 
             // Link the nodes together through the satisfied port as a basic example.
-            var satisfiedEdge = new ScriptableGraphEdgeModel(
-                conditionNode.Guid,
-                contractNode.Guid,
+            var satisfiedEdge = SimpleGraphEdgeModel.Create(
+                conditionNode,
+                contractNode,
                 ConditionNode.OutputSatisfiedPortName,
                 ContractNode.InputFulfilledPortName);
 
             // Set the default model.
-            Model = new SimpleGraphModel(
-                new ScriptableGraphNodeModel[]
+            return SimpleGraphModel.Create(
+                new SimpleGraphNodeModel[]
                 {
                     contractNode,
                     conditionNode
                 },
-                new ScriptableGraphEdgeModel[]
+                new SimpleGraphEdgeModel[]
                 {
                     satisfiedEdge
                 });
@@ -36,13 +36,8 @@ namespace Contracts.Scripting
 
         public IContract Build(UnityEvent updated)
         {
-            // Find the contract node.
-            var contractNode = Model.Nodes.First((node) => node.IsType(typeof(ContractNode)));
-
-            // Build the contract from the node asset, which will cascade through and build its conditions.
-            var contractAsset = (ContractBuilder)contractNode.ObjectReference;
-            var contract = contractAsset.Build(updated);
-            return contract;
+            var builder = Nodes.First((node) => node.Value is IBuilder<IContract>).Value as IBuilder<IContract>;
+            return builder.Build(updated);
         }
     }
 }

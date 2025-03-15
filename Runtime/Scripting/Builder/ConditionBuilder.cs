@@ -1,11 +1,10 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public abstract class ConditionBuilder : ScriptableObject, IBuilder<ICondition>
+    public abstract class ConditionBuilder : IBuilder<ICondition>
     {
         /// <summary>
         /// Create a condition based on a given assertion, with binding managed by Unity events.

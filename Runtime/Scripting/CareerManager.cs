@@ -1,8 +1,6 @@
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.Events;
-using UnityEngine.UIElements;
 
 namespace Contracts.Scripting
 {
@@ -40,19 +38,6 @@ namespace Contracts.Scripting
         [HideInInspector]
         private UnityEvent Updated;
 
-        private void Reset()
-        {
-            CreateInternalGraph();
-        }
-
-        private void OnValidate()
-        {
-            if (graph == null)
-            {
-                CreateInternalGraph();
-            }
-        }
-
         private void OnEnable()
         {
             career = new Career();
@@ -74,16 +59,6 @@ namespace Contracts.Scripting
         private void Update()
         {
             Updated.Invoke();
-        }
-
-        private void CreateInternalGraph()
-        {
-            Debug.Log("Creating an internal graph.");
-            graph = ScriptableObject.CreateInstance<CareerProgressionGraph>();
-            graph.name = "Internal Graph";
-
-            test = ScriptableObject.CreateInstance<ContractGraph>();
-            test.name = "Internal Contract Graph";
         }
 
         private void ForwardIssued(object sender, IssuedEventArgs e)

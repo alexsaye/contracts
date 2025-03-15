@@ -6,38 +6,37 @@ using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public class CareerProgressionGraph : SimpleGraphScriptableObject, IBuilder<IEnumerable<ICareerProgression>>
+    public class CareerProgressionGraph : SimpleGraphBehaviour, IBuilder<IEnumerable<ICareerProgression>>
     {
-        private void Awake()
+        protected override SimpleGraphModel CreateDefaultModel()
         {
             // Create the required start and end nodes by default, plus one progression node for convenience.
             var spacing = 300f;
-            var careerStartNode = new ScriptableGraphNodeModel(typeof(CareerStartNode), new Rect(-spacing, 0f, 0f, 0f));
-            var careerProgressionNode = new ScriptableGraphNodeModel(typeof(CareerProgressionNode), new Rect(0f, 0f, 0f, 0f));
-            var careerEndNode = new ScriptableGraphNodeModel(typeof(CareerEndNode), new Rect(spacing, 0f, 0f, 0f));
+            var careerStartNode = SimpleGraphNodeModel.Create<CareerStartNode>(new Rect(-spacing, 0f, 0f, 0f));
+            var careerProgressionNode = SimpleGraphNodeModel.Create<CareerProgressionNode>(new Rect(0f, 0f, 0f, 0f), new CareerProgressionBuilder());
+            var careerEndNode = SimpleGraphNodeModel.Create<CareerEndNode>(new Rect(spacing, 0f, 0f, 0f));
 
             // Link the nodes together to represent a valid graph which has a path from start to end.
-            var startEdge = new ScriptableGraphEdgeModel(
-                careerStartNode.Guid,
-                careerProgressionNode.Guid,
+            var startEdge = SimpleGraphEdgeModel.Create(
+                careerStartNode,
+                careerProgressionNode,
                 CareerStartNode.OutputHiredPortName,
                 CareerProgressionNode.InputIssuedPortName);
 
-            var endEdge = new ScriptableGraphEdgeModel(
-                careerProgressionNode.Guid,
-                careerEndNode.Guid,
+            var endEdge = SimpleGraphEdgeModel.Create(
+                careerProgressionNode,
+                careerEndNode,
                 CareerProgressionNode.OutputFulfilledPortName,
                 CareerEndNode.InputRetiredPortName);
 
-            // Set the default model.
-            Model = new SimpleGraphModel(
-                new ScriptableGraphNodeModel[]
+            return SimpleGraphModel.Create(
+                new SimpleGraphNodeModel[]
                 {
                     careerStartNode,
                     careerProgressionNode,
                     careerEndNode
                 },
-                new ScriptableGraphEdgeModel[]
+                new SimpleGraphEdgeModel[]
                 {
                     startEdge,
                     endEdge,
@@ -47,13 +46,13 @@ namespace Contracts.Scripting
         public IEnumerable<ICareerProgression> Build(UnityEvent updated)
         {
             // Build the first progressions from the start node.
-            var startNode = Model.Nodes.First((node) => node.IsType(typeof(CareerStartNode)));
-            var endNode = Model.Nodes.First((node) => node.IsType(typeof(CareerEndNode)));
-            var progressions = Model.Edges
+            var startNode = Nodes.First((node) => node.Type == typeof(CareerStartNode).AssemblyQualifiedName);
+            var endNode = Nodes.First((node) => node.Type == typeof(CareerStartNode).AssemblyQualifiedName);
+            var progressions = Edges
                 .Where((edge) => edge.OutputNodeGuid == startNode.Guid && edge.InputNodeGuid != endNode.Guid)
-                .Select((edge) => Model.Nodes.First((node) => node.Guid == edge.InputNodeGuid))
-                .Select((node) => (CareerProgressionBuilder)node.ObjectReference)
-                .Select((progression) => progression.Build(updated))
+                .Select((edge) => Nodes.First((node) => node.Guid == edge.InputNodeGuid))
+                .Select((node) => node.Value as IBuilder<ICareerProgression>)
+                .Select((builder) => builder.Build(updated))
                 .ToArray();
             return progressions;
         }

@@ -1,15 +1,27 @@
+using System;
 using UnityEngine;
 using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public class ContractBuilder : ScriptableObject, IBuilder<IContract>
+    [Serializable]
+    public class ContractBuilder : IBuilder<IContract>
     {
         [SerializeField]
         private ConditionBuilder fulfilling;
 
         [SerializeField]
         private ConditionBuilder rejecting;
+
+        public ContractBuilder() : this(null, null)
+        {
+        }
+
+        public ContractBuilder(ConditionBuilder fulfilling, ConditionBuilder rejecting)
+        {
+            this.fulfilling = fulfilling;
+            this.rejecting = rejecting;
+        }
 
         public IContract Build(UnityEvent updated)
         {

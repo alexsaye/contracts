@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -5,18 +6,30 @@ using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public class CareerProgressionBuilder : ScriptableObject, IBuilder<ICareerProgression>
+    [Serializable]
+    public class CareerProgressionBuilder : IBuilder<ICareerProgression>
     {
         [SerializeField]
-        private IBuilder<IContract> contract;
+        private ContractGraph contract;
 
         [SerializeField]
-        private List<CareerProgressionBuilder> nextOnFulfilled = new List<CareerProgressionBuilder>();
+        private List<CareerProgressionBuilder> nextOnFulfilled;
         public IEnumerable<CareerProgressionBuilder> NextOnFulfilled => nextOnFulfilled;
 
         [SerializeField]
-        private List<CareerProgressionBuilder> nextOnRejected = new List<CareerProgressionBuilder>();
+        private List<CareerProgressionBuilder> nextOnRejected;
         public IEnumerable<CareerProgressionBuilder> NextOnRejected => nextOnRejected;
+
+        public CareerProgressionBuilder() : this(null, new List<CareerProgressionBuilder>(), new List<CareerProgressionBuilder>())
+        {
+        }
+
+        public CareerProgressionBuilder(ContractGraph contract, IEnumerable<CareerProgressionBuilder> nextOnFulfilled, IEnumerable<CareerProgressionBuilder> nextOnRejected)
+        {
+            this.contract = contract;
+            this.nextOnFulfilled = nextOnFulfilled.ToList();
+            this.nextOnRejected = nextOnRejected.ToList();
+        }
 
         public ICareerProgression Build(UnityEvent updated)
         {

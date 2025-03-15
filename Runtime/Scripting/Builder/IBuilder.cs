@@ -2,7 +2,7 @@ using UnityEngine.Events;
 
 namespace Contracts
 {
-    internal interface IBuilder<T>
+    public interface IBuilder<T>
     {
         T Build(UnityEvent updated);
     }
