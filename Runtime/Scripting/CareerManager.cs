@@ -11,7 +11,7 @@ namespace Contracts.Scripting
     {
         [SerializeField]
         [Tooltip("The progression graph to use for the career. If an external graph is not provided, an internal graph will be created.")]
-        private CareerProgressionGraph graph;
+        private CareerGraph graph;
 
         [SerializeField]
         private ContractGraph test;

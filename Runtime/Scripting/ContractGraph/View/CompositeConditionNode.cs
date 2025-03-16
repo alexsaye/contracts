@@ -1,14 +1,19 @@
 using SimpleGraph;
+using System.Collections.Generic;
+using System;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UIElements;
+using System.Linq;
+using UnityEditor;
 
 namespace Contracts.Scripting
 {
-    [NodeMenu("Composite")]
-    [NodeContext(typeof(ContractGraph))]
     [NodeCapabilities(~Capabilities.Resizable)]
+    [NodeMenu("Composite")]
+    [NodeView(typeof(CompositeConditionNodeModel))]
     public class CompositeConditionNode : SimpleGraphNode
     {
         public const string InputSubconditionsPortName = "Subconditions";
@@ -17,8 +22,6 @@ namespace Contracts.Scripting
         private readonly EnumField modeField;
         private readonly Port inputSubconditionsPort;
         private readonly Port outputSatisfiedPort;
-
-        private CompositeConditionBuilder value;
 
         public CompositeConditionNode() : base()
         {
@@ -29,26 +32,23 @@ namespace Contracts.Scripting
             inputContainer.Add(modeField);
 
             // Add an input port for the subconditions.
-            inputSubconditionsPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi);
+            inputSubconditionsPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi);
             inputContainer.Add(inputSubconditionsPort);
 
             // Add an output port for if the composition is satisfied.
-            outputSatisfiedPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputSatisfiedPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputSatisfiedPort);
         }
 
-        protected override void RenderModel()
+        public override SimpleGraphNodeModel CreateDefaultModel()
         {
-            modeField.bindingPath = SerializedNodeModel
-                .FindPropertyRelative("value")
-                .FindPropertyRelative("mode")
-                .propertyPath;
-            inputContainer.Bind(SerializedNodeModel.serializedObject);
+            return new CompositeConditionNodeModel();
         }
 
-        public override object GetDefaultValue()
+        protected override void RenderModel(SerializedProperty serializedNodeModel)
         {
-            return new CompositeConditionBuilder();
+            var serializedMode = serializedNodeModel.FindPropertyRelative(nameof(CompositeConditionNodeModel.Mode));
+            modeField.bindingPath = serializedMode.propertyPath;
         }
     }
 }

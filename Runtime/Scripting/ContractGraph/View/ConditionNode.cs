@@ -3,24 +3,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UIElements;
 
 namespace Contracts.Scripting
 {
-    [NodeMenu("Condition")]
-    [NodeContext(typeof(ContractGraph))]
     [NodeCapabilities(~Capabilities.Resizable)]
+    [NodeMenu("Condition")]
+    [NodeView(typeof(ConditionNodeModel))]
     public class ConditionNode : SimpleGraphNode
     {
         public const string OutputSatisfiedPortName = "Satisfied";
 
         private static readonly IReadOnlyDictionary<string, Type> selectableBuilders = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
-                .Where(type => type.IsSubclassOf(typeof(ConditionBuilder)) && !type.IsAbstract)
-                .Where(type => type != typeof(CompositeConditionBuilder))
+                .Where(type => typeof(IConditionBuilder).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface)
                 .ToDictionary(type => type.Name, type => type);
 
         private static string FormatBuilderName(string key)
@@ -42,6 +43,7 @@ namespace Contracts.Scripting
         private readonly List<VisualElement> renderedElements = new();
         private readonly DropdownField typeField;
         private readonly Port outputSatisfiedPort;
+        private readonly EventCallback<ChangeEvent<string>> typeFieldCallback;
 
         public ConditionNode() : base()
         {
@@ -49,30 +51,48 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add an output port for when the condition is satisfied.
-            outputSatisfiedPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
+            outputSatisfiedPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
             outputContainer.Add(outputSatisfiedPort);
 
             // Add a dropdown type field to select a condition builder type.
             typeField = new(selectableBuilders.Keys.ToList(), -1, FormatBuilderName, FormatBuilderName);
             inputContainer.Add(typeField);
-
-            // When the type field is changed, change the condition builder to the selected type.
-            typeField.RegisterValueChangedCallback((e) => ReplaceBuilder(selectableBuilders[e.newValue]));
         }
 
-        protected void ReplaceBuilder(Type type)
+        public override SimpleGraphNodeModel CreateDefaultModel()
         {
-            var builder = (ConditionBuilder)Activator.CreateInstance(type); ;
-            Debug.Log($"Created builder: {builder}");
+            return new ConditionNodeModel();
+        }
 
-            SerializedNodeModel.FindPropertyRelative("value").managedReferenceValue = builder;
-            SerializedNodeModel.serializedObject.ApplyModifiedProperties();
-            RenderModel();
+        protected override void RenderModel(SerializedProperty serializedNodeModel)
+        {
+            // Change the condition builder to the selected type when the type field changes.
+            if (typeFieldCallback != null)
+            {
+                typeField.UnregisterCallback(typeFieldCallback);
+            }
+            typeField.RegisterValueChangedCallback((e) => ReplaceBuilder(serializedNodeModel, selectableBuilders[e.newValue]));
+
+            // Show the appropriate choice in the type field for the condition builder (or lack thereof).
+            var serializedBuilder = serializedNodeModel.FindPropertyRelative(nameof(ConditionNodeModel.Builder));
+            var builder = serializedBuilder.managedReferenceValue;
+            typeField.index = builder != null ? typeField.choices.IndexOf(builder.GetType().Name) : -1;
+
+            // Render the builder (or just clear if there isn't one).
+            RenderBuilder(serializedNodeModel);
+        }
+
+        private void ReplaceBuilder(SerializedProperty serializedNodeModel, Type type)
+        {
+            var serializedBuilder = serializedNodeModel.FindPropertyRelative(nameof(ConditionNodeModel.Builder));
+            serializedBuilder.managedReferenceValue = Activator.CreateInstance(type);
+            serializedNodeModel.serializedObject.ApplyModifiedProperties();
+            RenderBuilder(serializedNodeModel);
             RefreshPorts();
             RefreshExpandedState();
         }
 
-        protected override void RenderModel()
+        private void RenderBuilder(SerializedProperty serializedNodeModel)
         {
             // Clear any elements which were rendered for the previous condition builder.
             foreach (var element in renderedElements)
@@ -82,21 +102,10 @@ namespace Contracts.Scripting
             renderedElements.Clear();
 
             // Get the condition builder from the model.
-            var serializedValue = SerializedNodeModel.FindPropertyRelative("value");
-            var builder = serializedValue.managedReferenceValue;
-
-            // If there is no condition builder assigned, reset the type field to show the default message.
-            if (builder == null)
-            {
-                typeField.index = -1;
-                return;
-            }
-
-            // Show the appropriate choice in the type field for the condition builder.
-            typeField.index = typeField.choices.IndexOf(builder.GetType().Name);
+            var serializedBuilder = serializedNodeModel.FindPropertyRelative(nameof(ConditionNodeModel.Builder));
 
             // Check whether the condition builder has any visible serialized properties.
-            var serializedProperty = serializedValue.Copy();
+            var serializedProperty = serializedBuilder.Copy();
             if (!serializedProperty.hasVisibleChildren || !serializedProperty.NextVisible(true))
             {
                 return;
@@ -108,8 +117,7 @@ namespace Contracts.Scripting
                 var propertyField = new PropertyField(serializedProperty);
                 extensionContainer.Add(propertyField);
                 renderedElements.Add(propertyField);
-            } while (serializedProperty.NextVisible(false) && serializedProperty.depth > serializedValue.depth);
-            extensionContainer.Bind(SerializedNodeModel.serializedObject);
+            } while (serializedProperty.NextVisible(false) && serializedProperty.depth > serializedBuilder.depth);
         }
     }
 }

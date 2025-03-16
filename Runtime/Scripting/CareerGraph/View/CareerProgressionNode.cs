@@ -4,21 +4,27 @@ using UnityEditor.Experimental.GraphView;
 using UnityEditor.Search;
 using UnityEditor.UIElements;
 using SimpleGraph;
+using System.Collections.Generic;
+using System;
+using UnityEngine.Events;
+using System.Linq;
+using UnityEditor;
 
 namespace Contracts.Scripting
 {
     [NodeMenu("Career Progression")]
-    [NodeContext(typeof(CareerProgressionGraph))]
+    [NodeView(typeof(CareerProgressionNodeModel))]
     public class CareerProgressionNode : SimpleGraphNode
     {
         public const string InputIssuedPortName = "Issued";
         public const string OutputFulfilledPortName = "Fulfilled";
         public const string OutputRejectedPortName = "Rejected";
 
-        private readonly PropertyField contractField;
         private readonly Port inputIssuedPort;
         private readonly Port outputFulfillPort;
         private readonly Port outputRejectPort;
+
+        private readonly PropertyField contractField;
 
         public CareerProgressionNode() : base()
         {
@@ -26,15 +32,15 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add an input port for the previous career progression node to issue this progression through.
-            inputIssuedPort = SimpleGraphUtils.CreatePort<CareerProgressionBuilder>(InputIssuedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
+            inputIssuedPort = SimpleGraphUtils.CreatePort<ContractGraph>(InputIssuedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
             inputContainer.Add(inputIssuedPort);
 
             // Add an output port for the next career progression nodes when fulfilled.
-            outputFulfillPort = SimpleGraphUtils.CreatePort<CareerProgressionBuilder>(OutputFulfilledPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputFulfillPort = SimpleGraphUtils.CreatePort<ContractGraph>(OutputFulfilledPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputFulfillPort);
 
             // Add an output port for the next career progression nodes when rejected.
-            outputRejectPort = SimpleGraphUtils.CreatePort<CareerProgressionBuilder>(OutputRejectedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputRejectPort = SimpleGraphUtils.CreatePort<ContractGraph>(OutputRejectedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputRejectPort);
 
             // Add a field to select a contract.
@@ -42,18 +48,17 @@ namespace Contracts.Scripting
             inputContainer.Add(contractField);
         }
 
-        protected override void RenderModel()
+        public override SimpleGraphNodeModel CreateDefaultModel()
         {
-            contractField.bindingPath = SerializedNodeModel
-                    .FindPropertyRelative("value")
-                    .FindPropertyRelative("contract")
-                    .propertyPath;
-            inputContainer.Bind(SerializedNodeModel.serializedObject);
+            return new CareerProgressionNodeModel();
         }
 
-        public override object GetDefaultValue()
+        protected override void RenderModel(SerializedProperty serializedNodeModel)
         {
-            return new CareerProgressionBuilder();
+            contractField.bindingPath = serializedNodeModel
+                    .FindPropertyRelative("contract")
+                    .propertyPath;
+            inputContainer.Bind(serializedNodeModel.serializedObject);
         }
     }
 }

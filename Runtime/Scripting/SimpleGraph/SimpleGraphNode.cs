@@ -1,14 +1,14 @@
 ﻿using System;
 using UnityEditor;
 using UnityEditor.Experimental.GraphView;
+using UnityEditor.UIElements;
 
 namespace SimpleGraph
 {
+    [NodeView(typeof(SimpleGraphNodeModel))]
     public abstract class SimpleGraphNode : Node
     {
         public string Guid { get; private set; }
-
-        public SerializedProperty SerializedNodeModel { get; private set; }
 
         public SimpleGraphNode()
         {
@@ -16,24 +16,46 @@ namespace SimpleGraph
 
         public void LoadModel(SerializedProperty serializedNodeModel)
         {
-            SerializedNodeModel = serializedNodeModel;
-            Guid = serializedNodeModel.FindPropertyRelative("guid").stringValue;
-            SetPosition(serializedNodeModel.FindPropertyRelative("position").rectValue);
-            RenderModel();
+            Guid = serializedNodeModel.FindPropertyRelative(nameof(SimpleGraphNodeModel.Guid)).stringValue;
+            SetPosition(serializedNodeModel.FindPropertyRelative(nameof(SimpleGraphNodeModel.Position)).rectValue);
+            
+            mainContainer.Unbind();
+            RenderModel(serializedNodeModel);
+            mainContainer.Bind(serializedNodeModel.serializedObject);
+
             RefreshPorts();
             RefreshExpandedState();
         }
 
-        protected virtual void RenderModel()
+        protected virtual void RenderModel(SerializedProperty serializedNodeModel)
         {
         }
 
-        // TODO: I don't like this. Need to review how models are created within the graph behaviour.
-        public virtual object GetDefaultValue()
+        public abstract SimpleGraphNodeModel CreateDefaultModel();
+    }
+
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
+    public class NodeViewAttribute : Attribute
+    {
+        public Type ModelType { get; }
+
+        public NodeViewAttribute(Type modelType)
         {
-            return null;
+            ModelType = modelType;
         }
     }
+
+    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
+    public class NodeContextAttribute : Attribute
+    {
+        public Type GraphType;
+
+        public NodeContextAttribute(Type graphType)
+        {
+            GraphType = graphType;
+        }
+    }
+
 
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
     public class NodeMenuAttribute : Attribute
@@ -43,17 +65,6 @@ namespace SimpleGraph
         public NodeMenuAttribute(string menuName)
         {
             MenuName = menuName;
-        }
-    }
-
-    [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-    public class NodeContextAttribute : Attribute
-    {
-        public Type GraphType { get; }
-
-        public NodeContextAttribute(Type graphType)
-        {
-            GraphType = graphType;
         }
     }
 

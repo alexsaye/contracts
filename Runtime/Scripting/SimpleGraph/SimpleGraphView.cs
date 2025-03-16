@@ -11,76 +11,61 @@ namespace SimpleGraph
 {
     public class SimpleGraphView : GraphView
     {
-        /// <summary>
-        /// A cache of all nodes that can be created through the contextual menu for each graph type.
-        /// </summary>
-        private static Dictionary<Type, Dictionary<string, Type>> allMenuNodes = CacheAllMenuNodes();
-        private static Dictionary<Type, Dictionary<string, Type>> CacheAllMenuNodes()
+        private static readonly Type[] allNodeTypes;
+        private static readonly Dictionary<Type, Dictionary<string, Type>> contextualisedNodeTypes;
+
+        static SimpleGraphView()
         {
-            // Get all the node types.
-            var nodeTypes = AppDomain.CurrentDomain
+            // Find all node types in the current domain.
+            allNodeTypes = AppDomain.CurrentDomain
                 .GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
-                .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(SimpleGraphNode)));
+                .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(SimpleGraphNode)))
+                .ToArray();
 
             // Build the menu nodes from all nodes that have a menu attribute.
-            var allMenuNodes = new Dictionary<Type, Dictionary<string, Type>>();
-            foreach (var nodeType in nodeTypes)
+            contextualisedNodeTypes = new Dictionary<Type, Dictionary<string, Type>>();
+            foreach (var nodeType in allNodeTypes)
             {
-                var menuAttribute = nodeType.GetCustomAttribute<NodeMenuAttribute>();
-                if (menuAttribute == null)
-                {
-                    continue;
-                }
-
                 // Populate the menu nodes for each graph type referenced by the node's context attributes.
-                var contextAttributes = nodeType.GetCustomAttributes<NodeContextAttribute>();
-                foreach (var contextAttribute in contextAttributes)
+                var menuAttributes = nodeType.GetCustomAttributes<NodeMenuAttribute>();
+                foreach (var menuAttribute in menuAttributes)
                 {
-                    if (!allMenuNodes.TryGetValue(contextAttribute.GraphType, out var graphMenuNodes))
+                    if (!contextualisedNodeTypes.TryGetValue(menuAttribute.GraphType, out var graphMenuNodes))
                     {
                         graphMenuNodes = new Dictionary<string, Type>();
-                        allMenuNodes[contextAttribute.GraphType] = graphMenuNodes;
+                        contextualisedNodeTypes[menuAttribute.GraphType] = graphMenuNodes;
                     }
                     graphMenuNodes[menuAttribute.MenuName] = nodeType;
                 }
             }
-
-            return allMenuNodes;
         }
 
-        private Dictionary<string, Type> availableMenuNodes;
-        private SerializedObject serializedGraph;
-        private SerializedProperty serializedNodes;
-        private SerializedProperty serializedEdges;
+        private Dictionary<string, Type> menuNodeTypes;
+        private SerializedProperty serializedGraphModel;
 
-        public SimpleGraphView(SerializedObject serializedGraph)
+        public SimpleGraphView(SerializedProperty serializedGraphModel, Type contextualType)
         {
-            this.serializedGraph = serializedGraph;
-
-            // Contextualise the available menu nodes based on the type of the graph.
-            var graphType = serializedGraph.targetObject.GetType();
-            allMenuNodes.TryGetValue(graphType, out availableMenuNodes);
-            if (availableMenuNodes == null)
+            contextualisedNodeTypes.TryGetValue(contextualType, out menuNodeTypes);
+            if (menuNodeTypes == null)
             {
-                throw new ArgumentException($"No node contexts found for graph type {graphType}");
+                throw new ArgumentException($"No node contexts found for type {contextualType}");
             }
 
-            // Pull the model from the serialized graph.
-            var serializedModel = serializedGraph.FindProperty("model");
+            this.serializedGraphModel = serializedGraphModel;
 
-            serializedNodes = serializedModel.FindPropertyRelative("nodes");
-            var nodesEnumerator = serializedNodes.GetEnumerator();
-            while (nodesEnumerator.MoveNext())
+            var serializedNodes = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Nodes));
+            var serializedNodesEnumerator = serializedNodes.GetEnumerator();
+            while (serializedNodesEnumerator.MoveNext())
             {
-                AddNode((SerializedProperty)nodesEnumerator.Current);
+                AddNode((SerializedProperty)serializedNodesEnumerator.Current);
             }
 
-            serializedEdges = serializedModel.FindPropertyRelative("edges");
-            var edgesEnumerator = serializedEdges.GetEnumerator();
-            while (edgesEnumerator.MoveNext())
+            var serializedEdges = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Edges));
+            var serializedEdgesEnumerator = serializedEdges.GetEnumerator();
+            while (serializedEdgesEnumerator.MoveNext())
             {
-                AddEdge((SerializedProperty)edgesEnumerator.Current);
+                AddEdge((SerializedProperty)serializedEdgesEnumerator.Current);
             }
 
             this.StretchToParentSize();
@@ -98,6 +83,11 @@ namespace SimpleGraph
 
             graphViewChanged = OnGraphViewChanged;
             RegisterCallback<GeometryChangedEvent>(OnGeometryChanged);
+        }
+
+        public bool IsShowingModel(SerializedProperty serializedGraphModel)
+        {
+            return this.serializedGraphModel == serializedGraphModel;
         }
 
         private void OnGeometryChanged(GeometryChangedEvent geometryChangedEvent)
@@ -149,14 +139,14 @@ namespace SimpleGraph
                 }
             }
 
-            serializedGraph.ApplyModifiedProperties();
+            serializedGraphModel.serializedObject.ApplyModifiedProperties();
             return change;
         }
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent evt)
         {
             var mousePosition = new Rect(contentViewContainer.WorldToLocal(evt.mousePosition), Vector2.zero);
-            foreach (var (menuName, nodeType) in availableMenuNodes)
+            foreach (var (menuName, nodeType) in menuNodeTypes)
             {
                 evt.menu.AppendAction(menuName, (action) =>
                 {
@@ -165,7 +155,7 @@ namespace SimpleGraph
 
                     // Save the node to the model at the mouse position.
                     var serializedNodeModel = AddNodeToModel(node, mousePosition);
-                    serializedGraph.ApplyModifiedProperties();
+                    serializedGraphModel.serializedObject.ApplyModifiedProperties();
 
                     // Load the model into the node.
                     node.LoadModel(serializedNodeModel);
@@ -202,8 +192,28 @@ namespace SimpleGraph
 
         private SimpleGraphNode AddNode(SerializedProperty serializedEdgeModel)
         {
-            var type = Type.GetType(serializedEdgeModel.FindPropertyRelative("type").stringValue);
-            var node = CreateNode(type);
+            // Get the type of the model.
+            var modelType = serializedEdgeModel.managedReferenceFullTypename.GetType();
+
+            // Find in the assembly any node types which extend SimpleGraphNode<T> where T is the type of the model.
+            var nodeTypes = AppDomain.CurrentDomain
+                .GetAssemblies()
+                .SelectMany(assembly => assembly.GetTypes())
+                .Where(type => !type.IsAbstract && type.IsSubclassOf(typeof(SimpleGraphNode)))
+                .ToList();
+            
+            if (nodeTypes.Count == 0)
+            {
+                throw new UnityException($"No node types found for model type {modelType}.");
+            }
+
+            if (nodeTypes.Count > 1)
+            {
+                throw new UnityException($"Multiple node types found for model type {modelType}: {string.Join(", ", nodeTypes.Select((type) => type.Name))}.");
+            }
+
+            var nodeType = nodeTypes.First();
+            var node = CreateNode(nodeType);
             node.LoadModel(serializedEdgeModel);
             return node;
         }
@@ -211,27 +221,28 @@ namespace SimpleGraph
 
         private SerializedProperty AddNodeToModel(SimpleGraphNode node, Rect position)
         {
-            var nodeModel = new SimpleGraphNodeModel(node.GetType(), position, node.GetDefaultValue());
+            var serializedNodes = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Nodes));
 
+            // Insert a new node (this will be a managed reference of null).
             var index = serializedNodes.arraySize;
             serializedNodes.InsertArrayElementAtIndex(index);
-            
-            var serializedNodeModel = serializedNodes.GetArrayElementAtIndex(index);
-            serializedNodeModel.FindPropertyRelative("guid").stringValue = nodeModel.Guid;
-            serializedNodeModel.FindPropertyRelative("position").rectValue = nodeModel.Position;
-            serializedNodeModel.FindPropertyRelative("type").stringValue = nodeModel.Type;
-            serializedNodeModel.FindPropertyRelative("value").managedReferenceValue = nodeModel.Value;
 
-            Debug.Log($"Added node {nodeModel.Guid} of type {nodeModel.Type} at position {nodeModel.Position} with value {nodeModel.Value}.");
+            // Create a model from the node and assign it to the managed reference.
+            var nodeModel = node.CreateDefaultModel();
+            var serializedNodeModel = serializedNodes.GetArrayElementAtIndex(index);
+            serializedNodeModel.managedReferenceValue = nodeModel;
+
+            Debug.Log($"Added node {nodeModel}.");
             return serializedNodeModel;
         }
 
         private void DeleteNodeFromModel(SimpleGraphNode node)
         {
-            var enumerator = serializedNodes.GetEnumerator();
-            while (enumerator.MoveNext())
+            var serializedNodes = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Nodes));
+            var serializedNodesEnumerator = serializedNodes.GetEnumerator();
+            while (serializedNodesEnumerator.MoveNext())
             {
-                var serializedNode = (SerializedProperty)enumerator.Current;
+                var serializedNode = (SerializedProperty)serializedNodesEnumerator.Current;
                 if (serializedNode.FindPropertyRelative("guid").stringValue == node.Guid)
                 {
                     if (!serializedNode.DeleteCommand())
@@ -247,10 +258,11 @@ namespace SimpleGraph
 
         private void UpdateNodeInModel(SimpleGraphNode node)
         {
-            var enumerator = serializedNodes.GetEnumerator();
-            while (enumerator.MoveNext())
+            var serializedNodes = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Nodes));
+            var serializedNodesEnumerator = serializedNodes.GetEnumerator();
+            while (serializedNodesEnumerator.MoveNext())
             {
-                var serializedNode = (SerializedProperty)enumerator.Current;
+                var serializedNode = (SerializedProperty)serializedNodesEnumerator.Current;
                 if (serializedNode.FindPropertyRelative("guid").stringValue == node.Guid)
                 {
                     serializedNode.FindPropertyRelative("position").rectValue = node.GetPosition();
@@ -299,6 +311,7 @@ namespace SimpleGraph
             var inputNode = edge.input.node as SimpleGraphNode;
             var edgeModel = new SimpleGraphEdgeModel(outputNode.Guid, inputNode.Guid, edge.output.portName, edge.input.portName);
 
+            var serializedEdges = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Edges));
             var index = serializedEdges.arraySize;
             ++serializedEdges.arraySize;
 
@@ -317,10 +330,11 @@ namespace SimpleGraph
             var outputNode = edge.output.node as SimpleGraphNode;
             var inputNode = edge.input.node as SimpleGraphNode;
 
-            var enumerator = serializedEdges.GetEnumerator();
-            while (enumerator.MoveNext())
+            var serializedEdges = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Edges));
+            var serializedEdgesEnumerator = serializedEdges.GetEnumerator();
+            while (serializedEdgesEnumerator.MoveNext())
             {
-                var serializedEdge = (SerializedProperty)enumerator.Current;
+                var serializedEdge = (SerializedProperty)serializedEdgesEnumerator.Current;
                 if (serializedEdge.FindPropertyRelative("outputNodeGuid").stringValue == outputNode.Guid &&
                     serializedEdge.FindPropertyRelative("inputNodeGuid").stringValue == inputNode.Guid &&
                     serializedEdge.FindPropertyRelative("outputPortName").stringValue == edge.output.portName &&

@@ -1,12 +1,14 @@
 using SimpleGraph;
+using System;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UIElements;
 
 namespace Contracts.Scripting
 {
-    [NodeContext(typeof(ContractGraph))]
     [NodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
+    [NodeView(typeof(ContractNodeModel))]
     public class ContractNode : SimpleGraphNode
     {
         public const string InputFulfilledPortName = "Fulfilled";
@@ -21,12 +23,17 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.6f, 0.3f));
 
             // Add an input port for the conditions which fulfil the contract.
-            inputFulfilledPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(InputFulfilledPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
+            inputFulfilledPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(InputFulfilledPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
             inputContainer.Add(inputFulfilledPort);
 
             // Add an input port for the conditions which reject the contract.
-            inputRejectedPort = SimpleGraphUtils.CreatePort<ConditionBuilder>(InputRejectedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
+            inputRejectedPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(InputRejectedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
             inputContainer.Add(inputRejectedPort);
+        }
+
+        public override SimpleGraphNodeModel CreateDefaultModel()
+        {
+            return new ContractNodeModel();
         }
     }
 }

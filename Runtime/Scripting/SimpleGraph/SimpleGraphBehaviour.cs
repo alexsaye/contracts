@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor;
@@ -8,17 +9,7 @@ namespace SimpleGraph
     public abstract class SimpleGraphBehaviour : MonoBehaviour
     {
         [SerializeReference]
-        private SimpleGraphModel model;
-
-        /// <summary>
-        /// The nodes stored in the model.
-        /// </summary>
-        public IEnumerable<SimpleGraphNodeModel> Nodes => model.Nodes;
-
-        /// <summary>
-        /// The edges stored in the model.
-        /// </summary>
-        public IEnumerable<SimpleGraphEdgeModel> Edges => model.Edges;
+        protected SimpleGraphModel model;
 
         /// <summary>
         /// Create a default model for when the behaviour is initialised or reset.
@@ -39,89 +30,57 @@ namespace SimpleGraph
             Debug.Log("Reset: Creating default model...");
             model = CreateDefaultModel();
         }
-    }
 
-    class SimpleGraphScriptableObjectPostprocessor : AssetPostprocessor
-    {
-        [UnityEditor.Callbacks.OnOpenAsset(1)]
-        public static bool OnOpenAsset(int instanceID)
+        [CustomEditor(typeof(SimpleGraphBehaviour), true)]
+        class SimpleGraphBehaviourEditor : Editor
         {
-            var obj = EditorUtility.InstanceIDToObject(instanceID);
-            if (obj is not SimpleGraphBehaviour graph)
+            private SimpleGraphBehaviour graph => (SimpleGraphBehaviour)target;
+
+            public override void OnInspectorGUI()
             {
-                return false;
-            }
+                DrawDefaultInspector();
 
-            var window = SimpleGraphEditorWindow.ShowWindow(graph);
-            if (window == null)
-            {
-                return false;
-            }
-
-            return true;
-        }
-    }
-
-    [CustomEditor(typeof(SimpleGraphBehaviour), true)]
-    class SimpleGraphEditor : Editor
-    {
-        private SimpleGraphBehaviour graph => (SimpleGraphBehaviour)target;
-
-        public override void OnInspectorGUI()
-        {
-            DrawDefaultInspector();
-
-            if (GUILayout.Button("Open Graph"))
-            {
-                SimpleGraphEditorWindow.ShowWindow(graph);
+                if (GUILayout.Button("Open Graph"))
+                {
+                    var serializedGraph = new SerializedObject(graph);
+                    var serializedModel = serializedGraph.FindProperty(nameof(model));
+                    SimpleGraphEditorWindow.ShowWindow(serializedModel, graph.GetType());
+                }
             }
         }
     }
 
     class SimpleGraphEditorWindow : EditorWindow
     {
-        public static SimpleGraphEditorWindow ShowWindow(SimpleGraphBehaviour graph)
+        public static SimpleGraphEditorWindow ShowWindow(SerializedProperty serializedGraphModel, Type contextualType)
         {
-            if (graph == null)
+            if (serializedGraphModel == null)
             {
                 return null;
             }
 
-            var window = Resources.FindObjectsOfTypeAll<SimpleGraphEditorWindow>().FirstOrDefault(window => window.graph == graph);
+            var window = Resources.FindObjectsOfTypeAll<SimpleGraphEditorWindow>().FirstOrDefault(window => window.view.IsShowingModel(serializedGraphModel));
             if (window != null)
             {
                 window.Focus();
             }
             else
             {
-                window = CreateWindow<SimpleGraphEditorWindow>($"{graph.GetType().Name} ({graph.name})", typeof(SceneView));
-                window.ShowGraph(graph);
+                window = CreateWindow<SimpleGraphEditorWindow>($"{contextualType} ({serializedGraphModel.serializedObject.targetObject.name})", typeof(SceneView));
+                window.ShowGraph(serializedGraphModel, contextualType);
             }
             return window;
         }
 
-        private SimpleGraphBehaviour graph;
         private SimpleGraphView view;
 
-        private void OnEnable()
+        private void ShowGraph(SerializedProperty serializedGraphModel, Type contextualType)
         {
-            if (graph != null)
-            {
-                ShowGraph(graph);
-            }
-        }
-
-        private void ShowGraph(SimpleGraphBehaviour graph)
-        {
-            this.graph = graph;
-
             if (view != null)
             {
                 rootVisualElement.Remove(view);
             }
-
-            var serializedGraph = new SerializedObject(graph);
-            view = new SimpleGraphView(serializedGraph);
+            view = new SimpleGraphView(serializedGraphModel, contextualType);
             rootVisualElement.Add(view);
         }
     }
