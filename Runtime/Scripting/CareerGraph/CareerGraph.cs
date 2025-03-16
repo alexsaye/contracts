@@ -1,4 +1,5 @@
 using SimpleGraph;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,7 +7,7 @@ using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public class CareerGraph : SimpleGraphBehaviour
+    public class CareerGraph : SimpleGraph.SimpleGraph
     {
         protected override SimpleGraphModel CreateDefaultModel()
         {
@@ -18,15 +19,15 @@ namespace Contracts.Scripting
             var startEdge = new SimpleGraphEdgeModel(
                 startNode,
                 progressionNode,
-                CareerStartNode.OutputHiredPortName,
-                CareerProgressionNode.InputIssuedPortName);
+                CareerStartNodeView.OutputHiredPortName,
+                CareerProgressionNodeView.InputIssuedPortName);
 
             // Progression.Fulfilled -> End.Retired
             var endEdge = new SimpleGraphEdgeModel(
                 progressionNode,
                 endNode,
-                CareerProgressionNode.OutputFulfilledPortName,
-                CareerEndNode.InputRetiredPortName);
+                CareerProgressionNodeView.OutputFulfilledPortName,
+                CareerEndNodeView.InputRetiredPortName);
 
             return new SimpleGraphModel()
             {

@@ -4,7 +4,7 @@ using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    public class ContractGraph : SimpleGraphBehaviour
+    public class ContractGraph : SimpleGraph.SimpleGraph
     {
         protected override SimpleGraphModel CreateDefaultModel()
         {
@@ -15,8 +15,8 @@ namespace Contracts.Scripting
             var satisfiedEdge = new SimpleGraphEdgeModel(
                 conditionNode,
                 contractNode,
-                ConditionNode.OutputSatisfiedPortName,
-                ContractNode.InputFulfilledPortName);
+                ConditionNodeView.OutputSatisfiedPortName,
+                ContractNodeView.InputFulfilledPortName);
 
             return new SimpleGraphModel()
             {

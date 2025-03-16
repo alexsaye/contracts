@@ -8,13 +8,14 @@ using UnityEngine.Events;
 using UnityEngine.UIElements;
 using System.Linq;
 using UnityEditor;
+using SimpleGraph.Editor;
 
 namespace Contracts.Scripting
 {
-    [NodeCapabilities(~Capabilities.Resizable)]
-    [NodeMenu("Composite")]
-    [NodeView(typeof(CompositeConditionNodeModel))]
-    public class CompositeConditionNode : SimpleGraphNode
+    [SimpleGraphNodeCapabilities(~Capabilities.Resizable)]
+    [SimpleGraphNodeMenu("Composite")]
+    [SimpleGraphNodeModel(typeof(CompositeConditionNodeModel))]
+    public class CompositeConditionNodeView : SimpleGraphNodeView
     {
         public const string InputSubconditionsPortName = "Subconditions";
         public const string OutputSatisfiedPortName = "Satisfied";
@@ -23,32 +24,29 @@ namespace Contracts.Scripting
         private readonly Port inputSubconditionsPort;
         private readonly Port outputSatisfiedPort;
 
-        public CompositeConditionNode() : base()
+        public CompositeConditionNodeView() : base()
         {
             title = "Composite";
 
-            // Add an enum dropdown for selecting the composite mode.
-            modeField = new();
-            inputContainer.Add(modeField);
-
             // Add an input port for the subconditions.
-            inputSubconditionsPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi);
+            inputSubconditionsPort = CreatePort<IConditionBuilder>(InputSubconditionsPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Multi);
             inputContainer.Add(inputSubconditionsPort);
 
             // Add an output port for if the composition is satisfied.
-            outputSatisfiedPort = SimpleGraphUtils.CreatePort<IConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputSatisfiedPort = CreatePort<IConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputSatisfiedPort);
-        }
 
-        public override SimpleGraphNodeModel CreateDefaultModel()
-        {
-            return new CompositeConditionNodeModel();
+            // Add an enum dropdown for selecting the composite mode.
+            modeField = new();
+            extensionContainer.Add(modeField);
+            RefreshExpandedState();
         }
 
         protected override void RenderModel(SerializedProperty serializedNodeModel)
         {
             var serializedMode = serializedNodeModel.FindPropertyRelative(nameof(CompositeConditionNodeModel.Mode));
             modeField.bindingPath = serializedMode.propertyPath;
+            extensionContainer.Bind(serializedNodeModel.serializedObject);
         }
     }
 }

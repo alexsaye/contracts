@@ -3,14 +3,13 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 
-namespace SimpleGraph
+namespace SimpleGraph.Editor
 {
-    [NodeView(typeof(SimpleGraphNodeModel))]
-    public abstract class SimpleGraphNode : Node
+    public abstract class SimpleGraphNodeView : Node
     {
         public string Guid { get; private set; }
 
-        public SimpleGraphNode()
+        public SimpleGraphNodeView()
         {
         }
 
@@ -18,39 +17,40 @@ namespace SimpleGraph
         {
             Guid = serializedNodeModel.FindPropertyRelative(nameof(SimpleGraphNodeModel.Guid)).stringValue;
             SetPosition(serializedNodeModel.FindPropertyRelative(nameof(SimpleGraphNodeModel.Position)).rectValue);
-            
-            mainContainer.Unbind();
             RenderModel(serializedNodeModel);
-            mainContainer.Bind(serializedNodeModel.serializedObject);
-
-            RefreshPorts();
-            RefreshExpandedState();
         }
 
         protected virtual void RenderModel(SerializedProperty serializedNodeModel)
         {
         }
 
-        public abstract SimpleGraphNodeModel CreateDefaultModel();
+        public static Port CreatePort<T>(string name, Orientation orientation, Direction direction, Port.Capacity capacity)
+        {
+            var port = Port.Create<Edge>(orientation, direction, capacity, typeof(T));
+            port.name = name;
+            port.portName = name;
+            return port;
+        }
     }
 
+    // TODO: can we do this through a generic parameter in SimpleGraphNodeView instead?
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    public class NodeViewAttribute : Attribute
+    public class SimpleGraphNodeModelAttribute : Attribute
     {
         public Type ModelType { get; }
 
-        public NodeViewAttribute(Type modelType)
+        public SimpleGraphNodeModelAttribute(Type modelType)
         {
             ModelType = modelType;
         }
     }
 
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = true)]
-    public class NodeContextAttribute : Attribute
+    public class SimpleGraphNodeContextAttribute : Attribute
     {
         public Type GraphType;
 
-        public NodeContextAttribute(Type graphType)
+        public SimpleGraphNodeContextAttribute(Type graphType)
         {
             GraphType = graphType;
         }
@@ -58,22 +58,22 @@ namespace SimpleGraph
 
 
     [AttributeUsage(AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
-    public class NodeMenuAttribute : Attribute
+    public class SimpleGraphNodeMenuAttribute : Attribute
     {
         public string MenuName { get; }
 
-        public NodeMenuAttribute(string menuName)
+        public SimpleGraphNodeMenuAttribute(string menuName)
         {
             MenuName = menuName;
         }
     }
 
     [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
-    public class NodeCapabilitiesAttribute : Attribute
+    public class SimpleGraphNodeCapabilitiesAttribute : Attribute
     {
         public Capabilities Capabilities { get; }
 
-        public NodeCapabilitiesAttribute(Capabilities capabilities)
+        public SimpleGraphNodeCapabilitiesAttribute(Capabilities capabilities)
         {
             Capabilities = capabilities;
         }

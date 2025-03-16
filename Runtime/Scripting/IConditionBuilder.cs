@@ -1,11 +1,10 @@
-using System;
-using System.Collections.Generic;
+using UnityEngine;
 using UnityEngine.Events;
 
-namespace Contracts
+namespace Contracts.Scripting
 {
     public interface IConditionBuilder
     {
-        ICondition Build(UnityEvent updated);
+        public ICondition Build(UnityEvent updated);
     }
 }
