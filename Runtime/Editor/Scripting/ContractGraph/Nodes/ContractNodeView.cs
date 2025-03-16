@@ -9,7 +9,7 @@ using UnityEngine.UIElements;
 namespace Contracts.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
-    [SimpleGraphNodeModel(typeof(ContractNodeModel))]
+    [SimpleGraphNodeView(typeof(ContractNode))]
     public class ContractNodeView : SimpleGraphNodeView
     {
         public const string InputFulfilledPortName = "Fulfilled";

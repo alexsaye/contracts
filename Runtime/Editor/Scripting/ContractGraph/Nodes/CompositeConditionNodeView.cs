@@ -13,8 +13,8 @@ using SimpleGraph.Editor;
 namespace Contracts.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Resizable)]
-    [SimpleGraphNodeMenu("Composite")]
-    [SimpleGraphNodeModel(typeof(CompositeConditionNodeModel))]
+    [SimpleGraphNodeMenu(typeof(ContractGraph), "Composite")]
+    [SimpleGraphNodeView(typeof(CompositeConditionNode))]
     public class CompositeConditionNodeView : SimpleGraphNodeView
     {
         public const string InputSubconditionsPortName = "Subconditions";
@@ -42,11 +42,11 @@ namespace Contracts.Scripting
             RefreshExpandedState();
         }
 
-        protected override void RenderModel(SerializedProperty serializedNodeModel)
+        protected override void RenderModel(SerializedProperty serializedNode)
         {
-            var serializedMode = serializedNodeModel.FindPropertyRelative(nameof(CompositeConditionNodeModel.Mode));
+            var serializedMode = serializedNode.FindPropertyRelative(nameof(CompositeConditionNode.Mode));
             modeField.bindingPath = serializedMode.propertyPath;
-            extensionContainer.Bind(serializedNodeModel.serializedObject);
+            extensionContainer.Bind(serializedNode.serializedObject);
         }
     }
 }

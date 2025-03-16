@@ -14,8 +14,8 @@ using UnityEngine.UIElements;
 namespace Contracts.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Resizable)]
-    [SimpleGraphNodeMenu("Condition")]
-    [SimpleGraphNodeModel(typeof(ConditionNodeModel))]
+    [SimpleGraphNodeMenu(typeof(ContractGraph), "Condition")]
+    [SimpleGraphNodeView(typeof(ConditionNode))]
     public class ConditionNodeView : SimpleGraphNodeView
     {
         public const string OutputSatisfiedPortName = "Satisfied";
@@ -58,35 +58,35 @@ namespace Contracts.Scripting
             inputContainer.Add(typeField);
         }
 
-        protected override void RenderModel(SerializedProperty serializedNodeModel)
+        protected override void RenderModel(SerializedProperty serializedNode)
         {
             // Change the condition builder to the selected type when the type field changes.
             if (typeFieldCallback != null)
             {
                 typeField.UnregisterCallback(typeFieldCallback);
             }
-            typeField.RegisterValueChangedCallback((e) => ReplaceBuilder(serializedNodeModel, selectableBuilders[e.newValue]));
+            typeField.RegisterValueChangedCallback((e) => ReplaceBuilder(serializedNode, selectableBuilders[e.newValue]));
 
             // Show the appropriate choice in the type field for the condition builder (or lack thereof).
-            var serializedBuilder = serializedNodeModel.FindPropertyRelative(nameof(ConditionNodeModel.Builder));
+            var serializedBuilder = serializedNode.FindPropertyRelative(nameof(ConditionNode.Builder));
             var builder = serializedBuilder.managedReferenceValue;
             typeField.index = builder != null ? typeField.choices.IndexOf(builder.GetType().Name) : -1;
 
             // Render the builder (or just clear if there isn't one).
-            RenderBuilder(serializedNodeModel);
+            RenderBuilder(serializedNode);
         }
 
-        private void ReplaceBuilder(SerializedProperty serializedNodeModel, Type type)
+        private void ReplaceBuilder(SerializedProperty serializedNode, Type type)
         {
-            var serializedBuilder = serializedNodeModel.FindPropertyRelative(nameof(ConditionNodeModel.Builder));
+            var serializedBuilder = serializedNode.FindPropertyRelative(nameof(ConditionNode.Builder));
             serializedBuilder.managedReferenceValue = Activator.CreateInstance(type);
-            serializedNodeModel.serializedObject.ApplyModifiedProperties();
-            RenderBuilder(serializedNodeModel);
-            Debug.Log($"Replaced builder with {type.Name}");
+            serializedNode.serializedObject.ApplyModifiedProperties();
+            RenderBuilder(serializedNode);
             RefreshExpandedState();
+            Debug.Log($"Replaced builder with {type.Name}");
         }
 
-        private void RenderBuilder(SerializedProperty serializedNodeModel)
+        private void RenderBuilder(SerializedProperty serializedNode)
         {
             // Clear any elements which were rendered for the previous condition builder.
             foreach (var element in builderElements)
@@ -96,7 +96,7 @@ namespace Contracts.Scripting
             builderElements.Clear();
 
             // Get the condition builder from the model.
-            var serializedBuilder = serializedNodeModel.FindPropertyRelative(nameof(ConditionNodeModel.Builder));
+            var serializedBuilder = serializedNode.FindPropertyRelative(nameof(ConditionNode.Builder));
 
             // Check whether the condition builder has any visible serialized properties.
             var serializedProperty = serializedBuilder.Copy();
@@ -114,8 +114,7 @@ namespace Contracts.Scripting
                 builderElements.Add(propertyField);
                 Debug.Log($"Rendered property {serializedProperty.displayName}");
             } while (serializedProperty.NextVisible(false) && serializedProperty.depth > serializedBuilder.depth);
-            extensionContainer.Bind(serializedNodeModel.serializedObject);
-            RefreshExpandedState();
+            extensionContainer.Bind(serializedNode.serializedObject);
         }
     }
 }

@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 namespace Contracts
@@ -14,6 +13,8 @@ namespace Contracts
         public IEnumerable<IContract> Pending => pending.Select(progression => progression.Contract);
 
         public event EventHandler<IssuedEventArgs> Issued;
+
+        public event EventHandler<RetiredEventArgs> Retired;
 
         public Career()
         {
@@ -34,17 +35,26 @@ namespace Contracts
 
         private void IssueNext(object sender, StateEventArgs<IEnumerable<ICareerProgression>> e)
         {
-            UnityEngine.Debug.Log("DONE!");
             var progression = (ICareerProgression)sender;
             if (progression.Contract.State != ContractState.Pending)
             {
-                // Remove the no longer pending progression and issue its next progressions.
+                // Remove the no longer pending progression.
                 pending.Remove(progression);
                 progression.StateUpdated -= IssueNext;
-                foreach (var next in e.State)
+
+                var nextProgressions = e.State.ToList();
+                if (nextProgressions.Count == 0 && pending.Count == 0)
                 {
-                    UnityEngine.Debug.Log("Issuing next!");
-                    Issue(next);
+                    // There are no more contracts pending progression, so raise the retired event.
+                    Retired?.Invoke(this, new RetiredEventArgs());
+                }
+                else
+                {
+                    // Issue the next progressions.
+                    foreach (var nextProgression in nextProgressions)
+                    {
+                        Issue(nextProgression);
+                    }
                 }
             }
         }
@@ -64,6 +74,11 @@ namespace Contracts
         /// Raised when a contract is issued.
         /// </summary>
         event EventHandler<IssuedEventArgs> Issued;
+
+        /// <summary>
+        /// Raised when there are no more contracts pending progression.
+        /// </summary>
+        event EventHandler<RetiredEventArgs> Retired;
 
         /// <summary>
         /// Issue a contract with a route of progression.
@@ -90,4 +105,9 @@ namespace Contracts
             Contract = contract;
         }
     }
+
+    /// <summary>
+    /// Raised when there are no more contracts pending progression.
+    /// </summary>
+    public class RetiredEventArgs : EventArgs {}
 }

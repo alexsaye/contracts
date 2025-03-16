@@ -8,7 +8,7 @@ using UnityEngine.UIElements;
 namespace Contracts.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
-    [SimpleGraphNodeModel(typeof(CareerStartNodeModel))]
+    [SimpleGraphNodeView(typeof(CareerStartNode))]
     public class CareerStartNodeView : SimpleGraphNodeView
     {
         public const string OutputHiredPortName = "Hired";

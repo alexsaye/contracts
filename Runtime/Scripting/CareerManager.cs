@@ -13,9 +13,6 @@ namespace Contracts.Scripting
         [Tooltip("The progression graph to use for the career. If an external graph is not provided, an internal graph will be created.")]
         private CareerGraph graph;
 
-        [SerializeField]
-        private ContractGraph test;
-
         /// <summary>
         /// The managed career.
         /// </summary>
@@ -32,6 +29,11 @@ namespace Contracts.Scripting
         public UnityEvent<IContract> Issued;
 
         /// <summary>
+        /// Raised when there are no more contracts pending progression.
+        /// </summary>
+        public UnityEvent Retired;
+
+        /// <summary>
         /// Raised when the issuer updates, for updating any conditions which require per-frame assertion.
         /// </summary>
         [SerializeField]
@@ -42,6 +44,7 @@ namespace Contracts.Scripting
         {
             career = new Career();
             career.Issued += ForwardIssued;
+            career.Retired += ForwardRetired;
 
             var progressions = graph.Build(Updated);
             foreach (var progression in progressions)
@@ -53,6 +56,7 @@ namespace Contracts.Scripting
         private void OnDisable()
         {
             career.Issued -= ForwardIssued;
+            career.Retired -= ForwardRetired;
             career = null;
         }
 
@@ -63,8 +67,14 @@ namespace Contracts.Scripting
 
         private void ForwardIssued(object sender, IssuedEventArgs e)
         {
-            Debug.Log($"Issuing contract: {e.Contract}");
+            Debug.Log($"Issued");
             Issued.Invoke(e.Contract);
+        }
+
+        private void ForwardRetired(object sender, System.EventArgs e)
+        {
+            Debug.Log("Retired");
+            Retired.Invoke();
         }
     }
 }

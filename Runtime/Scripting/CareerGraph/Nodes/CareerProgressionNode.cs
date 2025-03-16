@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Contracts.Scripting
 {
     [Serializable]
-    public class CareerProgressionNodeModel : SimpleGraphNodeModel
+    public class CareerProgressionNode : SimpleGraphNode
     {
         [SerializeReference]
         public ContractGraph Contract;

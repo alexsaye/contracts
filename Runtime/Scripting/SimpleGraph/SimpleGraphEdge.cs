@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SimpleGraph
 {
     [Serializable]
-    public class SimpleGraphEdgeModel
+    public class SimpleGraphEdge
     {
         [SerializeField]
         private string outputNodeGuid;
@@ -22,12 +22,12 @@ namespace SimpleGraph
         private string inputPortName;
         public string InputPortName => inputPortName;
 
-        public SimpleGraphEdgeModel(SimpleGraphNodeModel outputNodeModel, SimpleGraphNodeModel inputNodeModel, string outputPortName, string inputPortName)
-            : this(outputNodeModel.Guid, inputNodeModel.Guid, outputPortName, inputPortName)
+        public SimpleGraphEdge(SimpleGraphNode outputNode, SimpleGraphNode inputNode, string outputPortName, string inputPortName)
+            : this(outputNode.Guid, inputNode.Guid, outputPortName, inputPortName)
         {
         }
 
-        public SimpleGraphEdgeModel(string outputNodeGuid, string inputNodeGuid, string outputPortName, string inputPortName)
+        public SimpleGraphEdge(string outputNodeGuid, string inputNodeGuid, string outputPortName, string inputPortName)
         {
             this.outputNodeGuid = outputNodeGuid;
             this.inputNodeGuid = inputNodeGuid;

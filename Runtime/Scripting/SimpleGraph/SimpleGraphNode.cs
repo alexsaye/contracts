@@ -4,7 +4,7 @@ using UnityEngine;
 namespace SimpleGraph
 {
     [Serializable]
-    public abstract class SimpleGraphNodeModel
+    public abstract class SimpleGraphNode
     {
         [SerializeField]
         public string Guid;
@@ -12,7 +12,7 @@ namespace SimpleGraph
         [SerializeField]
         public Rect Position;
 
-        public SimpleGraphNodeModel()
+        public SimpleGraphNode()
         {
             Guid = System.Guid.NewGuid().ToString();
         }

@@ -13,8 +13,8 @@ using SimpleGraph.Editor;
 
 namespace Contracts.Scripting
 {
-    [SimpleGraphNodeMenu("Career Progression")]
-    [SimpleGraphNodeModel(typeof(CareerProgressionNodeModel))]
+    [SimpleGraphNodeMenu(typeof(CareerGraph), "Career Progression")]
+    [SimpleGraphNodeView(typeof(CareerProgressionNode))]
     public class CareerProgressionNodeView : SimpleGraphNodeView
     {
         public const string InputIssuedPortName = "Issued";
@@ -50,11 +50,10 @@ namespace Contracts.Scripting
             extensionContainer.Add(contractField);
         }
 
-        protected override void RenderModel(SerializedProperty serializedNodeModel)
+        protected override void RenderModel(SerializedProperty serializedNode)
         {
-            contractField.bindingPath = serializedNodeModel.FindPropertyRelative(nameof(CareerProgressionNodeModel.Contract)).propertyPath;
-            extensionContainer.Bind(serializedNodeModel.serializedObject);
-            RefreshExpandedState();
+            contractField.bindingPath = serializedNode.FindPropertyRelative(nameof(CareerProgressionNode.Contract)).propertyPath;
+            extensionContainer.Bind(serializedNode.serializedObject);
         }
     }
 }

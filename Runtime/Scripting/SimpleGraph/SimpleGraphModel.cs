@@ -7,9 +7,9 @@ namespace SimpleGraph
     public class SimpleGraphModel
     {
         [SerializeReference]
-        public SimpleGraphNodeModel[] Nodes;
+        public SimpleGraphNode[] Nodes;
 
         [SerializeField]
-        public SimpleGraphEdgeModel[] Edges;
+        public SimpleGraphEdge[] Edges;
     }
 }

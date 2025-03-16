@@ -25,10 +25,10 @@ namespace SimpleGraph.Editor
 
             foreach (var nodeViewType in nodeViewTypes)
             {
-                var modelAttribute = nodeViewType.GetCustomAttribute<SimpleGraphNodeModelAttribute>();
+                var modelAttribute = nodeViewType.GetCustomAttribute<SimpleGraphNodeViewAttribute>();
                 if (modelAttribute == null)
                 {
-                    Debug.LogWarning($"Node view {nodeViewType} does not have an associated SimpleGraphNodeModel attribute and will be ignored.");
+                    Debug.LogWarning($"Node view {nodeViewType} does not have a {nameof(SimpleGraphNodeViewAttribute)} and will be ignored.");
                     continue;
                 }
 
@@ -118,7 +118,7 @@ namespace SimpleGraph.Editor
                 {
                     var outputNodeView = edgeView.output.node as SimpleGraphNodeView;
                     var inputNodeView = edgeView.input.node as SimpleGraphNodeView;
-                    var edgeModel = new SimpleGraphEdgeModel(outputNodeView.Guid, inputNodeView.Guid, edgeView.output.portName, edgeView.input.portName);
+                    var edgeModel = new SimpleGraphEdge(outputNodeView.Guid, inputNodeView.Guid, edgeView.output.portName, edgeView.input.portName);
                     AddEdgeModel(edgeModel);
                 }
             }
@@ -146,11 +146,12 @@ namespace SimpleGraph.Editor
 
         public override void BuildContextualMenu(ContextualMenuPopulateEvent populate)
         {
+            var graphType = serializedGraphModel.serializedObject.targetObject.GetType();
             var mousePosition = new Rect(contentViewContainer.WorldToLocal(populate.mousePosition), Vector2.zero);
             foreach (var (modelType, viewType) in modelToViewMapping)
             {
                 var menuAttribute = viewType.GetCustomAttribute<SimpleGraphNodeMenuAttribute>();
-                if (menuAttribute == null)
+                if (menuAttribute == null || menuAttribute.GraphType != graphType)
                 {
                     continue;
                 }
@@ -158,17 +159,17 @@ namespace SimpleGraph.Editor
                 populate.menu.AppendAction(menuAttribute.MenuName, (action) =>
                 {
                     // Create the selected node view and its associated model.
-                    var nodeModel = Activator.CreateInstance(modelType) as SimpleGraphNodeModel;
+                    var node = Activator.CreateInstance(modelType) as SimpleGraphNode;
 
                     // Set the node's position to the mouse position.
-                    nodeModel.Position = mousePosition;
+                    node.Position = mousePosition;
 
                     // Add the node model to the graph model and apply the new node change.
-                    var serializedNodeModel = AddNodeModel(nodeModel);
+                    var serializedNode = AddNodeModel(node);
                     serializedGraphModel.serializedObject.ApplyModifiedProperties();
 
                     // Add the node view to the graph view.
-                    AddNodeView(serializedNodeModel);
+                    AddNodeView(serializedNode);
                 });
             }
             populate.menu.AppendSeparator();
@@ -176,22 +177,20 @@ namespace SimpleGraph.Editor
             base.BuildContextualMenu(populate);
         }
 
-        private SimpleGraphNodeView AddNodeView(SerializedProperty serializedNodeModel)
+        private SimpleGraphNodeView AddNodeView(SerializedProperty serializedNode)
         {
             // Create the associated view for the model type.
-            var modelType = serializedNodeModel.managedReferenceValue.GetType();
+            var modelType = serializedNode.managedReferenceValue.GetType();
             var viewType = modelToViewMapping[modelType];
             var nodeView = Activator.CreateInstance(viewType) as SimpleGraphNodeView;
 
             // Load the model into the view and add it to the graph.
-            nodeView.LoadModel(serializedNodeModel);
+            nodeView.LoadModel(serializedNode);
             AddElement(nodeView);
-
-            Debug.Log($"Added {nodeView}.");
             return nodeView;
         }
 
-        private SerializedProperty AddNodeModel(SimpleGraphNodeModel nodeModel)
+        private SerializedProperty AddNodeModel(SimpleGraphNode node)
         {
             var serializedNodes = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Nodes));
 
@@ -200,11 +199,9 @@ namespace SimpleGraph.Editor
             serializedNodes.InsertArrayElementAtIndex(index);
 
             // Create a model from the node and assign it to the managed reference.
-            var serializedNodeModel = serializedNodes.GetArrayElementAtIndex(index);
-            serializedNodeModel.managedReferenceValue = nodeModel;
-
-            Debug.Log($"Added {nodeModel}.");
-            return serializedNodeModel;
+            var serializedNode = serializedNodes.GetArrayElementAtIndex(index);
+            serializedNode.managedReferenceValue = node;
+            return serializedNode;
         }
 
         private void DeleteNodeModel(SimpleGraphNodeView nodeView)
@@ -213,15 +210,14 @@ namespace SimpleGraph.Editor
             var serializedNodesEnumerator = serializedNodes.GetEnumerator();
             while (serializedNodesEnumerator.MoveNext())
             {
-                var serializedNodeModel = (SerializedProperty)serializedNodesEnumerator.Current;
-                var nodeModel = serializedNodeModel.managedReferenceValue as SimpleGraphNodeModel;
-                if (nodeModel.Guid == nodeView.Guid)
+                var serializedNode = (SerializedProperty)serializedNodesEnumerator.Current;
+                var node = serializedNode.managedReferenceValue as SimpleGraphNode;
+                if (node.Guid == nodeView.Guid)
                 {
-                    if (!serializedNodeModel.DeleteCommand())
+                    if (!serializedNode.DeleteCommand())
                     {
                         throw new InvalidOperationException("Failed to delete node from model.");
                     }
-                    Debug.Log($"Deleted {nodeModel}.");
                     return;
                 }
             }
@@ -234,36 +230,35 @@ namespace SimpleGraph.Editor
             var serializedNodesEnumerator = serializedNodes.GetEnumerator();
             while (serializedNodesEnumerator.MoveNext())
             {
-                var serializedNodeModel = (SerializedProperty)serializedNodesEnumerator.Current;
-                var nodeModel = serializedNodeModel.managedReferenceValue as SimpleGraphNodeModel;
-                if (nodeModel.Guid == nodeView.Guid)
+                var serializedNode = (SerializedProperty)serializedNodesEnumerator.Current;
+                var node = serializedNode.managedReferenceValue as SimpleGraphNode;
+                if (node.Guid == nodeView.Guid)
                 {
-                    serializedNodeModel.FindPropertyRelative(nameof(SimpleGraphNodeModel.Position)).rectValue = nodeView.GetPosition();
-                    Debug.Log($"Moved {nodeModel} to {nodeView}.");
+                    serializedNode.FindPropertyRelative(nameof(SimpleGraphNode.Position)).rectValue = nodeView.GetPosition();
                     return;
                 }
             }
             throw new InvalidOperationException("Node not found in model.");
         }
 
-        private Edge AddEdgeView(SerializedProperty serializedEdgeModel)
+        private Edge AddEdgeView(SerializedProperty serializedEdge)
         {
-            var outputNodeGuid = serializedEdgeModel.FindPropertyRelative("outputNodeGuid").stringValue;
+            var outputNodeGuid = serializedEdge.FindPropertyRelative("outputNodeGuid").stringValue;
             var outputNodeView = graphElements
                 .Where((element) => element is SimpleGraphNodeView)
                 .Select((element) => element as SimpleGraphNodeView)
                 .First((nodeView) => nodeView.Guid == outputNodeGuid);
 
-            var inputNodeGuid = serializedEdgeModel.FindPropertyRelative("inputNodeGuid").stringValue;
+            var inputNodeGuid = serializedEdge.FindPropertyRelative("inputNodeGuid").stringValue;
             var inputNodeView = graphElements
                 .Where((element) => element is SimpleGraphNodeView)
                 .Select((element) => element as SimpleGraphNodeView)
                 .First((nodeView) => nodeView.Guid == inputNodeGuid);
 
-            var outputPortName = serializedEdgeModel.FindPropertyRelative("outputPortName").stringValue;
+            var outputPortName = serializedEdge.FindPropertyRelative("outputPortName").stringValue;
             var outputPort = outputNodeView.outputContainer.Q<Port>(outputPortName);
 
-            var inputPortName = serializedEdgeModel.FindPropertyRelative("inputPortName").stringValue;
+            var inputPortName = serializedEdge.FindPropertyRelative("inputPortName").stringValue;
             var inputPort = inputNodeView.inputContainer.Q<Port>(inputPortName);
 
             var edgeView = new Edge
@@ -275,26 +270,22 @@ namespace SimpleGraph.Editor
             inputPort.Connect(edgeView);
             outputPort.Connect(edgeView);
             AddElement(edgeView);
-
-            Debug.Log($"Added edge view between port {outputPortName} of node {outputNodeView.Guid} and port {inputPortName} of node {inputNodeView.Guid}.");
             return edgeView;
         }
 
-        private SerializedProperty AddEdgeModel(SimpleGraphEdgeModel edgeModel)
+        private SerializedProperty AddEdgeModel(SimpleGraphEdge edgeModel)
         {
             var serializedEdges = serializedGraphModel.FindPropertyRelative(nameof(SimpleGraphModel.Edges));
             var index = serializedEdges.arraySize;
             ++serializedEdges.arraySize;
 
             // TODO: more strings - not good!
-            var serializedEdgeModel = serializedEdges.GetArrayElementAtIndex(index);
-            serializedEdgeModel.FindPropertyRelative("outputNodeGuid").stringValue = edgeModel.OutputNodeGuid;
-            serializedEdgeModel.FindPropertyRelative("inputNodeGuid").stringValue = edgeModel.InputNodeGuid;
-            serializedEdgeModel.FindPropertyRelative("outputPortName").stringValue = edgeModel.OutputPortName;
-            serializedEdgeModel.FindPropertyRelative("inputPortName").stringValue = edgeModel.InputPortName;
-
-            Debug.Log($"Added edge model between port {edgeModel.OutputPortName} of node {edgeModel.OutputNodeGuid} and port {edgeModel.InputPortName} of node {edgeModel.InputNodeGuid}.");
-            return serializedEdgeModel;
+            var serializedEdge = serializedEdges.GetArrayElementAtIndex(index);
+            serializedEdge.FindPropertyRelative("outputNodeGuid").stringValue = edgeModel.OutputNodeGuid;
+            serializedEdge.FindPropertyRelative("inputNodeGuid").stringValue = edgeModel.InputNodeGuid;
+            serializedEdge.FindPropertyRelative("outputPortName").stringValue = edgeModel.OutputPortName;
+            serializedEdge.FindPropertyRelative("inputPortName").stringValue = edgeModel.InputPortName;
+            return serializedEdge;
         }
 
         private void DeleteEdgeModel(Edge edgeView)
@@ -317,7 +308,6 @@ namespace SimpleGraph.Editor
                     {
                         throw new InvalidOperationException("Failed to delete edge from model.");
                     }
-                    Debug.Log($"Deleted edge model between port {edgeView.output.portName} of node {outputNodeView.Guid} and port {edgeView.input.portName} of node {inputNodeView.Guid}.");
                     return;
                 }
             }

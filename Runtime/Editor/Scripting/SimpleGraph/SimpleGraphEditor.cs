@@ -3,10 +3,10 @@ using UnityEngine;
 
 namespace SimpleGraph.Editor
 {
-    [CustomEditor(typeof(SimpleGraph), true)]
+    [CustomEditor(typeof(SimpleGraphBehaviour), true)]
     public class SimpleGraphEditor : UnityEditor.Editor
     {
-        private SimpleGraph graph => (SimpleGraph)target;
+        private SimpleGraphBehaviour graph => (SimpleGraphBehaviour)target;
 
         public override void OnInspectorGUI()
         {

@@ -1,11 +1,12 @@
 using SimpleGraph;
 using System;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
     [Serializable]
-    public class CompositeConditionNodeModel : SimpleGraphNodeModel
+    public class CompositeConditionNode : SimpleGraphNode
     {
         public enum CompositeMode
         {

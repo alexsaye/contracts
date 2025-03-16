@@ -6,7 +6,7 @@ namespace SimpleGraph.Editor
 {
     public class SimpleGraphEditorWindow : EditorWindow
     {
-        public static SimpleGraphEditorWindow ShowWindow(SimpleGraph graph)
+        public static SimpleGraphEditorWindow ShowWindow(SimpleGraphBehaviour graph)
         {
             if (graph == null)
             {
@@ -26,7 +26,7 @@ namespace SimpleGraph.Editor
             return window;
         }
 
-        private SimpleGraph graph;
+        private SimpleGraphBehaviour graph;
 
         private void OnEnable()
         {
@@ -36,12 +36,12 @@ namespace SimpleGraph.Editor
             }
         }
 
-        private void ShowGraph(SimpleGraph graph)
+        private void ShowGraph(SimpleGraphBehaviour graph)
         {
             rootVisualElement.Clear();
             this.graph = graph;
             var serializedGraph = new SerializedObject(graph);
-            var serializedModel = serializedGraph.FindProperty("model");
+            var serializedModel = serializedGraph.FindProperty(nameof(SimpleGraphBehaviour.Model));
             var view = new SimpleGraphView(serializedModel);
             rootVisualElement.Add(view);
         }

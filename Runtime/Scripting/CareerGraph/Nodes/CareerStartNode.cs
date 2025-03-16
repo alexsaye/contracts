@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Contracts.Scripting
 {
     [Serializable]
-    public class CareerEndNodeModel : SimpleGraphNodeModel
+    public class CareerStartNode : SimpleGraphNode
     {
     }
 }
