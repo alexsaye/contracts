@@ -1,90 +1,124 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 
 namespace Contracts
 {
     /// <summary>
-    /// A career in which contracts are issued through the progression of other contracts.
+    /// A career which issues drafted contracts.
     /// </summary>
     public class Career : ICareer
     {
-        private readonly HashSet<ICareerProgression> pending;
-        public IEnumerable<IContract> Pending => pending.Select(progression => progression.Contract);
+        private readonly HashSet<IContractBuilder> pendingBuilders = new();
+        private readonly Dictionary<IContract, IContractBuilder> pendingIssues = new();
 
         public event EventHandler<IssuedEventArgs> Issued;
 
         public Career()
         {
-            pending = new();
         }
 
-        public void Issue(ICareerProgression progression)
+        public Career(IContractBuilder builder)
         {
-            pending.Add(progression);
-            Issued?.Invoke(this, new IssuedEventArgs(progression.Contract));
-            progression.State += IssueNext;
+            DraftContract(builder);
         }
 
-        public void Issue(IContract contract)
+        public Career(IEnumerable<IContractBuilder> builders)
         {
-            Issue(new CareerProgression(contract));
-        }
-
-        private void IssueNext(object sender, StateEventArgs<IEnumerable<ICareerProgression>> e)
-        {
-            var progression = (ICareerProgression)sender;
-            if (progression.Contract.CurrentState != ContractState.Pending)
+            foreach (var builder in builders)
             {
-                // Remove the no longer pending progression and issue its next progressions.
-                pending.Remove(progression);
-                progression.State -= IssueNext;
-                foreach (var next in e.CurrentState)
+                DraftContract(builder);
+            }
+        }
+
+        public void DraftContract(IContractBuilder builder)
+        {
+            pendingBuilders.Add(builder);
+        }
+
+        public bool IssueContracts()
+        {
+            if (pendingBuilders.Count == 0)
+            {
+                return false;
+            }
+
+            // Drain the pending builders and start issuing their contracts.
+            var issuingBuilders = new List<IContractBuilder>(pendingBuilders);
+            pendingBuilders.Clear();
+            foreach (var builder in issuingBuilders)
+            {
+                var contract = builder.Build();
+                pendingIssues.Add(contract, builder);
+                Issued?.Invoke(this, new IssuedEventArgs(contract, builder));
+                contract.StateUpdated += HandleContractState;
+            }
+            return true;
+        }
+
+        private void HandleContractState(object sender, StateEventArgs<ContractState> e)
+        {
+            if (e.State == ContractState.Pending)
+            {
+                return;
+            }
+
+            // Stop tracking the finished contract.
+            var contract = (IContract)sender;
+            var contractBuilder = pendingIssues[contract];
+            pendingIssues.Remove(contract);
+            contract.StateUpdated -= HandleContractState;
+
+            // If the builder is a progression, draft its next builders based on the contract's state.
+            if (contractBuilder is IContractBuilderProgression progression)
+            {
+                var nextBuilders = e.State == ContractState.Fulfilled
+                    ? progression.NextOnFulfilled
+                    : progression.NextOnRejected;
+                foreach (var nextBuilder in nextBuilders)
                 {
-                    Issue(next);
+                    DraftContract(nextBuilder);
                 }
             }
         }
     }
 
-    /// <summary>
-    /// Represents a career in which contracts are issued through the progression of other contracts.
-    /// </summary>
     public interface ICareer
     {
         /// <summary>
-        /// The contracts currently pending progression.
+        /// Draft a contract to issue when prompted.
         /// </summary>
-        public IEnumerable<IContract> Pending { get; }
+        void DraftContract(IContractBuilder builder);
+
+        /// <summary>
+        /// Issue drafted contracts.
+        /// </summary>
+        /// <returns>True if contracts were issued, otherwise false.</returns>
+        bool IssueContracts();
 
         /// <summary>
         /// Raised when a contract is issued.
         /// </summary>
         event EventHandler<IssuedEventArgs> Issued;
-
-        /// <summary>
-        /// Issue a contract with a route of progression.
-        /// </summary>
-        /// <param name="progression">The contract to issue with its route of progression.</param>
-        void Issue(ICareerProgression progression);
-
-        /// <summary>
-        /// Issue a contract without a route of progression.
-        /// </summary>
-        /// <param name="contract">The contract to issue.</param>
-        void Issue(IContract contract);
     }
 
     /// <summary>
-    /// Raised when a contract is issued through a career.
+    /// Represents a builder for a career.
     /// </summary>
+    public interface ICareerBuilder
+    {
+        ICareer Build();
+    }
+
     public class IssuedEventArgs : EventArgs
     {
         public IContract Contract { get; }
+        public IContractBuilder Builder { get; }
 
-        public IssuedEventArgs(IContract contract)
+        public IssuedEventArgs(IContract contract, IContractBuilder builder)
         {
             Contract = contract;
+            Builder = builder;
         }
     }
 }

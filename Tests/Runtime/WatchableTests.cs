@@ -9,49 +9,49 @@ namespace Contracts.Tests
         public void WatchableWatched()
         {
             var watchable = new ReadOnlyWatchable<int>();
-            Assert.IsFalse(watchable.IsWatched, "Is not watched on construction.");
+            Assert.IsFalse(watchable.Watched, "Is not watched on construction.");
 
             var historyA = new List<bool>();
-            void handleWatchedA(object sender, WatchedEventArgs e) => historyA.Add(e.IsWatched);
+            void handleWatchedA(object sender, WatchedEventArgs e) => historyA.Add(e.Watched);
 
-            watchable.Watched += handleWatchedA;
-            Assert.IsFalse(watchable.IsWatched, "Is not watched when Watched gains handlers.");
+            watchable.WatchedUpdated += handleWatchedA;
+            Assert.IsFalse(watchable.Watched, "Is not watched when Watched gains handlers.");
             Assert.AreEqual(new List<bool> { false }, historyA, "Has pushed unwatched to handler A.");
 
             void handleStateA(object sender, StateEventArgs<int> e) { }
-            watchable.State += handleStateA;
-            Assert.IsTrue(watchable.IsWatched, "Is watched when State gains its first handler.");
+            watchable.StateUpdated += handleStateA;
+            Assert.IsTrue(watchable.Watched, "Is watched when State gains its first handler.");
             Assert.AreEqual(new List<bool> { false, true }, historyA, "Has pushed watched to handler A.");
 
             var historyB = new List<bool>();
-            void handleWatchedB(object sender, WatchedEventArgs e) => historyB.Add(e.IsWatched);
-            watchable.Watched += handleWatchedB;
+            void handleWatchedB(object sender, WatchedEventArgs e) => historyB.Add(e.Watched);
+            watchable.WatchedUpdated += handleWatchedB;
             Assert.AreEqual(new List<bool> { false, true }, historyA, "Has not pushed watched to handler A again.");
             Assert.AreEqual(new List<bool> { true }, historyB, "Has pushed watched to handler B.");
 
             void handleStateB(object sender, StateEventArgs<int> e) { }
-            watchable.State += handleStateB;
-            Assert.IsTrue(watchable.IsWatched, "Is still watched when State gains its second handler.");
+            watchable.StateUpdated += handleStateB;
+            Assert.IsTrue(watchable.Watched, "Is still watched when State gains its second handler.");
             Assert.AreEqual(new List<bool> { false, true }, historyA, "Has not pushed to handler A again.");
             Assert.AreEqual(new List<bool> { true }, historyB, "Has not pushed to handler B again.");
 
-            watchable.State -= handleStateA;
-            Assert.IsTrue(watchable.IsWatched, "Is still watched when State loses one of its handlers.");
+            watchable.StateUpdated -= handleStateA;
+            Assert.IsTrue(watchable.Watched, "Is still watched when State loses one of its handlers.");
             Assert.AreEqual(new List<bool> { false, true }, historyA, "Has not pushed to handler A again.");
             Assert.AreEqual(new List<bool> { true }, historyB, "Has not pushed to handler B again.");
 
-            watchable.State -= handleStateB;
-            Assert.IsFalse(watchable.IsWatched, "Is not watched when State loses its last handler.");
+            watchable.StateUpdated -= handleStateB;
+            Assert.IsFalse(watchable.Watched, "Is not watched when State loses its last handler.");
             Assert.AreEqual(new List<bool> { false, true, false }, historyA, "Has pushed unwatched to handler A again.");
             Assert.AreEqual(new List<bool> { true, false }, historyB, "Has pushed unwatched to handler B again.");
 
-            watchable.Watched -= handleWatchedA;
-            watchable.State += handleStateA;
+            watchable.WatchedUpdated -= handleWatchedA;
+            watchable.StateUpdated += handleStateA;
             Assert.AreEqual(new List<bool> { false, true, false }, historyA, "Has not pushed to unsubscribed handler A.");
             Assert.AreEqual(new List<bool> { true, false, true }, historyB, "Has pushed watched to handler B.");
 
-            watchable.Watched -= handleWatchedB;
-            watchable.State -= handleStateA;
+            watchable.WatchedUpdated -= handleWatchedB;
+            watchable.StateUpdated -= handleStateA;
             Assert.AreEqual(new List<bool> { true, false, true }, historyB, "Has not pushed to unsubscribed handler B.");
         }
 
@@ -59,37 +59,37 @@ namespace Contracts.Tests
         public void WatchableState()
         {
             var watchable = new Watchable<int>();
-            Assert.AreEqual(0, watchable.CurrentState, "Has default state of 0 on construction.");
+            Assert.AreEqual(0, watchable.State, "Has default state of 0 on construction.");
 
             var historyA = new List<int>();
-            void handleStateA(object sender, StateEventArgs<int> e) => historyA.Add(e.CurrentState);
-            watchable.State += handleStateA;
+            void handleStateA(object sender, StateEventArgs<int> e) => historyA.Add(e.State);
+            watchable.StateUpdated += handleStateA;
             Assert.AreEqual(new List<int> { 0 }, historyA, "Has pushed default state to handler A once.");
 
-            watchable.CurrentState = 1;
+            watchable.State = 1;
             Assert.AreEqual(new List<int> { 0, 1 }, historyA, "Has pushed changed state to handler A once.");
 
             var historyB = new List<int>();
-            void handleStateB(object sender, StateEventArgs<int> e) => historyB.Add(e.CurrentState);
-            watchable.State += handleStateB;
+            void handleStateB(object sender, StateEventArgs<int> e) => historyB.Add(e.State);
+            watchable.StateUpdated += handleStateB;
             Assert.AreEqual(new List<int> { 0, 1 }, historyA, "Has not pushed state to handler A again.");
             Assert.AreEqual(new List<int> { 1 }, historyB, "Has pushed state to handler B once.");
 
-            watchable.CurrentState = 1;
+            watchable.State = 1;
             Assert.AreEqual(new List<int> { 0, 1 }, historyA, "Has not pushed unchanged state to handler A.");
             Assert.AreEqual(new List<int> { 1 }, historyB, "Has not pushed unchanged state to handler B.");
 
-            watchable.CurrentState = 2;
+            watchable.State = 2;
             Assert.AreEqual(new List<int> { 0, 1, 2 }, historyA, "Has pushed changed state to handler A.");
             Assert.AreEqual(new List<int> { 1, 2 }, historyB, "Has pushed changed state to handler B.");
 
-            watchable.State -= handleStateA;
-            watchable.CurrentState = 3;
+            watchable.StateUpdated -= handleStateA;
+            watchable.State = 3;
             Assert.AreEqual(new List<int> { 0, 1, 2 }, historyA, "Has not pushed changed state to unsubscribed handler A.");
             Assert.AreEqual(new List<int> { 1, 2, 3 }, historyB, "Has pushed changed state to handler B.");
 
-            watchable.State -= handleStateB;
-            watchable.CurrentState = 4;
+            watchable.StateUpdated -= handleStateB;
+            watchable.State = 4;
             Assert.AreEqual(new List<int> { 1, 2, 3 }, historyB, "Has not pushed changed state to unsubscribed handler B.");
         }
     }

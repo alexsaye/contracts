@@ -1,69 +1,33 @@
+using System;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
-using UnityEngine.Events;
 
 namespace Contracts.Scripting
 {
-    /// <summary>
-    /// Manages a career in which contracts are issued through the progression of other contracts.
-    /// </summary>
     public class CareerManager : MonoBehaviour
     {
-        [Tooltip("The initial scripted contracts to issue when this issuer is enabled.")]
-        [SerializeField]
-        private List<ScriptableContract> initialContracts;
+        private List<ICareer> careers = new();
 
-        /// <summary>
-        /// The managed career.
-        /// </summary>
-        private ICareer career;
+        public event EventHandler<IssuedEventArgs> Issued;
 
-        /// <summary>
-        /// The contracts currently pending progression.
-        /// </summary>
-        public IEnumerable<IContract> Pending => career.Pending;
-
-        /// <summary>
-        /// Raised when a contract is issued.
-        /// </summary>
-        public UnityEvent<IContract> Issued;
-
-        /// <summary>
-        /// Raised when the issuer updates, for updating any conditions which require per-frame assertion.
-        /// </summary>
-        [SerializeField]
-        [HideInInspector]
-        private UnityEvent Updated;
-
-        private void OnEnable()
+        public void Update()
         {
-            career = new Career();
-            career.Issued += ForwardIssued;
-
-            // Build and issue all initial contracts.
-            var progressions = initialContracts.Select(scriptedContract => scriptedContract.Build(Updated));
-            foreach (var progression in progressions)
+            foreach (var career in careers)
             {
-                career.Issue(progression);
+                career.IssueContracts();
             }
         }
 
-        private void OnDisable()
+        public void Hire(ICareerBuilder builder)
         {
-            career.Issued -= ForwardIssued;
-            career = null;
+            var career = builder.Build();
+            careers.Add(career);
+            career.Issued += ForwardIssued;
         }
 
-        private void Update()
+        private void ForwardIssued(object sender, IssuedEventArgs issued)
         {
-            Updated.Invoke();
-        }
-
-        private void ForwardIssued(object sender, IssuedEventArgs e)
-        {
-            Debug.Log($"Issued contract: {e.Contract}");
-            Issued.Invoke(e.Contract);
+            Issued?.Invoke(this, issued);
         }
     }
 }

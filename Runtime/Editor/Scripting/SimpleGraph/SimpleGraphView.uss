@@ -1,0 +1,10 @@
+ScriptableGraphView
+{
+    flex-grow: 1;
+}
+#Grid
+{
+    --spacing: 32;
+    --line-color: rgb(40,40,40);
+    --thick-line-color: rgb(45,45,45);
+}
