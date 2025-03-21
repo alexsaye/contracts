@@ -13,9 +13,9 @@ using SimpleGraph.Editor;
 
 namespace Contracts.Scripting
 {
-    [SimpleGraphNodeMenu(typeof(CareerGraph), "Career Progression")]
-    [SimpleGraphNodeView(typeof(CareerProgressionNode))]
-    public class CareerProgressionNodeView : SimpleGraphNodeView
+    [SimpleGraphNodeMenu(typeof(CareerGraph), "Contract Progression")]
+    [SimpleGraphNodeView(typeof(ProgressionNode))]
+    public class ProgressionNodeView : SimpleGraphNodeView
     {
         public const string InputIssuedPortName = "Issued";
         public const string OutputFulfilledPortName = "Fulfilled";
@@ -27,20 +27,20 @@ namespace Contracts.Scripting
 
         private readonly PropertyField contractField;
 
-        public CareerProgressionNodeView() : base()
+        public ProgressionNodeView() : base()
         {
-            title = "Career Progression";
+            title = "Progression";
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
-            // Add an input port for the previous career progression node to issue this progression through.
+            // Add an input port for the previous progression node to issue this progression through.
             inputIssuedPort = CreatePort<ContractGraph>(InputIssuedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
             inputContainer.Add(inputIssuedPort);
 
-            // Add an output port for the next career progression nodes when fulfilled.
+            // Add an output port for the next progression nodes when fulfilled.
             outputFulfillPort = CreatePort<ContractGraph>(OutputFulfilledPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputFulfillPort);
 
-            // Add an output port for the next career progression nodes when rejected.
+            // Add an output port for the next progression nodes when rejected.
             outputRejectPort = CreatePort<ContractGraph>(OutputRejectedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputRejectPort);
 
@@ -52,7 +52,7 @@ namespace Contracts.Scripting
 
         protected override void RenderModel(SerializedProperty serializedNode)
         {
-            contractField.bindingPath = serializedNode.FindPropertyRelative(nameof(CareerProgressionNode.Contract)).propertyPath;
+            contractField.bindingPath = serializedNode.FindPropertyRelative(nameof(ProgressionNode.Contract)).propertyPath;
             extensionContainer.Bind(serializedNode.serializedObject);
         }
     }

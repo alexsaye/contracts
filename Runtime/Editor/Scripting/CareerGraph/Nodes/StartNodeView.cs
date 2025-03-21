@@ -8,14 +8,14 @@ using UnityEngine.UIElements;
 namespace Contracts.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
-    [SimpleGraphNodeView(typeof(CareerStartNode))]
-    public class CareerStartNodeView : SimpleGraphNodeView
+    [SimpleGraphNodeView(typeof(StartNode))]
+    public class StartNodeView : SimpleGraphNodeView
     {
         public const string OutputHiredPortName = "Hired";
 
         private readonly Port outputPort;
 
-        public CareerStartNodeView() : base()
+        public StartNodeView() : base()
         {
             title = "Start";
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));

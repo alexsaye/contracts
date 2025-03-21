@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Contracts
 {
     /// <summary>
@@ -75,6 +77,16 @@ namespace Contracts
     }
 
     /// <summary>
+    /// The status of a contract, indicating whether it is pending, fulfilled, or rejected.
+    /// </summary>
+    public enum ContractState
+    {
+        Pending,
+        Fulfilled,
+        Rejected,
+    }
+
+    /// <summary>
     /// Represents a promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
     public interface IContract : IReadOnlyWatchable<ContractState>
@@ -91,12 +103,29 @@ namespace Contracts
     }
 
     /// <summary>
-    /// The status of a contract, indicating whether it is pending, fulfilled, or rejected.
+    /// Represents a builder for a contract.
     /// </summary>
-    public enum ContractState
+    public interface IContractBuilder
     {
-        Pending,
-        Fulfilled,
-        Rejected,
+        /// <summary>
+        /// Builds the contract.
+        /// </summary>
+        IContract Build();
+    }
+
+    /// <summary>
+    /// Represents builder for a contract which can be chained forwards to builders for future contracts.
+    /// </summary>
+    public interface IContractBuilderProgression : IContractBuilder
+    {
+        /// <summary>
+        /// The next contract builders when the contract is fulfilled.
+        /// </summary>
+        IEnumerable<IContractBuilder> NextOnFulfilled { get; }
+
+        /// <summary>
+        /// The next contract builders when the contract is rejected.
+        /// </summary>
+        IEnumerable<IContractBuilder> NextOnRejected { get; }
     }
 }

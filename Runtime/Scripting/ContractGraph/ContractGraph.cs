@@ -1,23 +1,14 @@
 using SimpleGraph;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using UnityEngine.Events;
-using UnityEngine.Rendering;
 
 namespace Contracts.Scripting
 {
-    public class ContractGraph : SimpleGraphBehaviour
+    public class ContractGraph : SimpleGraphBehaviour, IContractBuilder
     {
-        /// <summary>
-        /// Raised when a condition is built.
-        /// </summary>
-        public UnityEvent<BuiltConditionEventArgs> BuiltCondition;
-
-        /// <summary>
-        /// Raised when a contract is built.
-        /// </summary>
-        public UnityEvent<BuiltContractEventArgs> BuiltContract;
+        private IContractBuilder builder;
 
         protected override SimpleGraphModel CreateDefaultModel()
         {
@@ -45,117 +36,63 @@ namespace Contracts.Scripting
             };
         }
 
-        public IContract Build(UnityEvent updated)
+        private void Awake()
         {
-            Debug.Log("Building contract...");
-
-            var contractNode = GetNodes<ContractNode>().First();
-
-            ICondition fulfillingCondition;
-            var fulfillingEdge = GetInputEdges(contractNode, ContractNodeView.InputFulfilledPortName).FirstOrDefault();
-            if (fulfillingEdge != null)
-            {
-                var fulfillingNode = GetNodeProvidingOutput(fulfillingEdge);
-                fulfillingCondition = BuildConditionRecursively(fulfillingNode, updated);
-            }
-            else
-            {
-                fulfillingCondition = Condition.Never;
-            }
-
-            ICondition rejectingCondition;
-            var rejectingEdge = GetInputEdges(contractNode, ContractNodeView.InputRejectedPortName).FirstOrDefault();
-            if (rejectingEdge != null)
-            {
-                var rejectingNode = GetNodeProvidingOutput(rejectingEdge);
-                rejectingCondition = BuildConditionRecursively(rejectingNode, updated);
-            }
-            else
-            {
-                rejectingCondition = Condition.Never;
-            }
-
-            var contract = new Contract(fulfillingCondition, rejectingCondition);
-            return contract;
+            builder = CacheContractBuilder();
         }
 
-        private ICondition BuildConditionRecursively(SimpleGraphNode node, UnityEvent updated)
+        private IContractBuilder CacheContractBuilder()
         {
+            // Find the required contract node.
+            var contractNode = GetNodes<ContractNode>().FirstOrDefault();
+            if (contractNode == null)
+            {
+                Debug.LogError($"Failed to find the required contract node in {name}");
+                return null;
+            }
+            Debug.Log($"Caching contract builder for {contractNode}...");
+
+            // Find the optional fulfilling input edge and create a condition builder for its output node.
+            Debug.Log("Caching fulfilling condition builder...");
+            var fulfillingEdge = GetInputEdges(contractNode, ContractNodeView.InputFulfilledPortName).FirstOrDefault();
+            contractNode.Fulfilling = fulfillingEdge != null
+                ? CacheConditionBuilder(GetNodeProvidingOutput(fulfillingEdge))
+                : null;
+
+            // Find the optional rejecting input edge and create a condition builder for its output node.
+            Debug.Log("Caching rejecting condition builder...");
+            var rejectingEdge = GetInputEdges(contractNode, ContractNodeView.InputRejectedPortName).FirstOrDefault();
+            contractNode.Rejecting = rejectingEdge != null
+                ? CacheConditionBuilder(GetNodeProvidingOutput(rejectingEdge))
+                : null;
+
+            return contractNode;
+        }
+
+        private IConditionBuilder CacheConditionBuilder(SimpleGraphNode node)
+        {
+            Debug.Log($"Caching condition builder for {node}...");
+
             if (node is ConditionNode conditionNode)
             {
-                Debug.Log($"Building {conditionNode}...");
-                if (conditionNode.Builder == null)
-                {
-                    Debug.LogWarning("Redundant condition node has no condition builder and will always be satisfied.");
-                    return Condition.Always;
-                }
-
-                var condition = conditionNode.Builder.Build(updated);
-                BuiltCondition.Invoke(new BuiltConditionEventArgs(condition, conditionNode));
-                return condition;
+                return conditionNode;
             }
-            
+
             if (node is CompositeConditionNode compositeConditionNode)
             {
-                Debug.Log($"Building {compositeConditionNode}...");
-                var subconditions = GetInputEdges(compositeConditionNode, CompositeConditionNodeView.InputSubconditionsPortName)
+                compositeConditionNode.Subconditions = GetInputEdges(compositeConditionNode, CompositeConditionNodeView.InputSubconditionsPortName)
                     .Select(edge => GetNodeProvidingOutput(edge))
-                    .Select(subconditionNode => BuildConditionRecursively(subconditionNode, updated))
+                    .Select(subconditionNode => CacheConditionBuilder(subconditionNode))
                     .ToList();
-
-                return compositeConditionNode.Mode switch
-                {
-                    CompositeConditionNode.CompositeMode.All => Condition.All(subconditions),
-                    CompositeConditionNode.CompositeMode.Any => Condition.Any(subconditions),
-                    _ => throw new InvalidOperationException($"Unknown composite mode: {compositeConditionNode.Mode}"),
-                };
+                return compositeConditionNode;
             }
 
-            throw new InvalidOperationException($"Failed to build {node}");
+            throw new InvalidOperationException($"Failed to create a condition builder for {node}");
         }
-    }
 
-    /// <summary>
-    /// Raised when a non-composite condition is built.
-    /// </summary>
-    public class BuiltConditionEventArgs : EventArgs
-    {
-        /// <summary>
-        /// The condition that was built.
-        /// </summary>
-        public ICondition Condition { get; }
-
-        /// <summary>
-        /// The node from which the condition was built.
-        /// </summary>
-        public ConditionNode Node { get; }
-
-        public BuiltConditionEventArgs(ICondition condition, ConditionNode node)
+        public IContract Build()
         {
-            Condition = condition;
-            Node = node;
-        }
-    }
-
-    /// <summary>
-    /// Raised when a contract is built.
-    /// </summary>
-    public class BuiltContractEventArgs : EventArgs
-    {
-        /// <summary>
-        /// The contract that was built.
-        /// </summary>
-        public IContract Contract { get; }
-
-        /// <summary>
-        /// The node from which the contract was built.
-        /// </summary>
-        public ContractNode Node { get; }
-
-        public BuiltContractEventArgs(IContract contract, ContractNode node)
-        {
-            Contract = contract;
-            Node = node;
+            return builder.Build();
         }
     }
 }

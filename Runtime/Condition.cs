@@ -175,4 +175,15 @@ namespace Contracts
         /// </summary>
         void Update(object sender, EventArgs e);
     }
+
+    /// <summary>
+    /// Represents a builder for a condition.
+    /// </summary>
+    public interface IConditionBuilder
+    {
+        /// <summary>
+        /// Builds the condition.
+        /// </summary>
+        ICondition Build();
+    }
 }

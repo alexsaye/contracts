@@ -22,6 +22,7 @@ namespace Contracts.Scripting
 
         private static readonly IReadOnlyDictionary<string, Type> selectableBuilders = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
+                .Where(type => type != typeof(ConditionNode) && type != typeof(CompositeConditionNode))
                 .Where(type => typeof(IConditionBuilder).IsAssignableFrom(type) && !type.IsAbstract && !type.IsInterface)
                 .ToDictionary(type => type.Name, type => type);
 

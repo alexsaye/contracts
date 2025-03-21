@@ -10,7 +10,7 @@ namespace SimpleGraph.Editor
 
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
+            base.OnInspectorGUI();
 
             if (GUILayout.Button("Open Graph"))
             {
