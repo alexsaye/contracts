@@ -10,7 +10,7 @@ namespace Contracts.Scripting
         public IConditionBuilder Fulfilling { get; set; }
         public IConditionBuilder Rejecting { get; set; }
 
-        public IContract Build()
+        public virtual IContract Build()
         {
             Debug.Log($"Building {this}...");
 
