@@ -50,7 +50,7 @@ namespace Contracts
             {
                 var contract = builder.Build();
                 pendingIssues.Add(contract, builder);
-                Issued?.Invoke(this, new IssuedEventArgs(contract, builder));
+                Issued?.Invoke(this, new IssuedEventArgs(contract));
                 contract.StateUpdated += HandleContractState;
             }
             return true;
@@ -113,12 +113,10 @@ namespace Contracts
     public class IssuedEventArgs : EventArgs
     {
         public IContract Contract { get; }
-        public IContractBuilder Builder { get; }
 
-        public IssuedEventArgs(IContract contract, IContractBuilder builder)
+        public IssuedEventArgs(IContract contract)
         {
             Contract = contract;
-            Builder = builder;
         }
     }
 }
