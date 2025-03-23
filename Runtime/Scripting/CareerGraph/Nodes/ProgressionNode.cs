@@ -15,7 +15,7 @@ namespace Contracts.Scripting
 
         public IEnumerable<IContractBuilder> NextOnRejected { get; set; }
 
-        public IContract Build()
+        public virtual IContract Build()
         {
             Debug.Log($"Building {this}...");
             if (Contract == null)

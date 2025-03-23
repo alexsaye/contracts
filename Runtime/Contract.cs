@@ -3,7 +3,34 @@ using System.Collections.Generic;
 namespace Contracts
 {
     /// <summary>
-    /// A promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
+    /// A parameterised contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
+    /// </summary>
+    /// <typeparam name="T">The type of data offered by the contract.</typeparam>
+    public class Contract<T> : Contract, IContract<T>
+    {
+        public T Offer { get; }
+
+        public Contract(Contract<T> contract)
+            : this(contract.Offer, contract.Fulfilling, contract.Rejecting) { }
+
+        public Contract(T offer, IContract contract)
+            : this(offer, contract.Fulfilling, contract.Rejecting) { }
+
+        public Contract(T offer, ICondition fulfilling)
+            : base(fulfilling)
+        {
+            Offer = offer;
+        }
+
+        public Contract(T offer, ICondition fulfilling, ICondition rejecting)
+            : base(fulfilling, rejecting)
+        {
+            Offer = offer;
+        }
+    }
+
+    /// <summary>
+    /// A contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
     public class Contract : ReadOnlyWatchable<ContractState>, IContract
     {
@@ -12,6 +39,9 @@ namespace Contracts
 
         private readonly ICondition rejecting;
         public ICondition Rejecting => rejecting;
+
+        public Contract(IContract other)
+            : this(other.Fulfilling, other.Rejecting) { }
 
         public Contract(ICondition fulfilling)
             : this(fulfilling, Condition.Never) { }
@@ -87,7 +117,15 @@ namespace Contracts
     }
 
     /// <summary>
-    /// Represents a promise-like contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
+    /// Represents a parameterised contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
+    /// </summary>
+    public interface IContract<T> : IContract
+    {
+        T Offer { get; }
+    }
+
+    /// <summary>
+    /// Represents a contract that is fulfilled when a fulfilling condition is met, or rejected when a rejecting condition is met (or both are met).
     /// </summary>
     public interface IContract : IReadOnlyWatchable<ContractState>
     {

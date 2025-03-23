@@ -10,7 +10,7 @@ namespace Contracts.Scripting
         [SerializeReference]
         public IConditionBuilder Builder;
 
-        public ICondition Build()
+        public virtual ICondition Build()
         {
             Debug.Log($"Building {this}...");
             if (Builder == null)

@@ -10,7 +10,7 @@ namespace Contracts.Scripting
     {
         public IEnumerable<IContractBuilderProgression> NextOnHired { get; set; }
 
-        public ICareer Build()
+        public virtual ICareer Build()
         {
             Debug.Log($"Building {this}...");
             return new Career(NextOnHired);
