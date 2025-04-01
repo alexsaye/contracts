@@ -186,4 +186,18 @@ namespace Contracts
         /// </summary>
         ICondition Build();
     }
+
+    public static class ConditionExtensions
+    {
+        /// <summary>
+        /// Creates a condition based on a watchable state and an assertion.
+        /// </summary>
+        public static ICondition When<T>(this IReadOnlyWatchable<T> watchable, Func<T, bool> assert)
+        {
+            return Condition.When(
+                assert: () => assert(watchable.State),
+                bind: condition => watchable.StateUpdated += condition.Update,
+                unbind: condition => watchable.StateUpdated -= condition.Update);
+        }
+    }
 }
