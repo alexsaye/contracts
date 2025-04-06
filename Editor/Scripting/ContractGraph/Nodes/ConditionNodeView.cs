@@ -48,7 +48,7 @@ namespace Contracts.Editor.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add an output port for when the condition is satisfied.
-            outputSatisfiedPort = CreatePort<IConditionBuilder>("", Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
+            outputSatisfiedPort = CreatePort<IConditionBuilder>("Satisfied", Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
             outputContainer.Add(outputSatisfiedPort);
 
             // Add a dropdown type field to select a condition builder type.
