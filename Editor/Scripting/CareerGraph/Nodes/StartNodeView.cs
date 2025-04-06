@@ -1,18 +1,15 @@
-using SimpleGraph;
+using Contracts.Scripting;
 using SimpleGraph.Editor;
-using System;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Contracts.Scripting
+namespace Contracts.Editor.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Deletable & ~Capabilities.Copiable & ~Capabilities.Resizable)]
     [SimpleGraphNodeView(typeof(StartNode))]
     public class StartNodeView : SimpleGraphNodeView
     {
-        public const string OutputHiredPortName = "Hired";
-
         private readonly Port outputPort;
 
         public StartNodeView() : base()
@@ -21,7 +18,7 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.6f, 0.3f, 0.3f));
 
             // Add an output port for the first career progression nodes.
-            outputPort = CreatePort<ContractGraph>(OutputHiredPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputPort = CreatePort<ContractGraph>("Hired", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputPort);
         }
     }

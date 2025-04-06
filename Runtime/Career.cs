@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace Contracts
 {
@@ -56,7 +55,7 @@ namespace Contracts
             return true;
         }
 
-        private void HandleContractState(object sender, StateEventArgs<ContractState> e)
+        private void HandleContractState(object sender, StateUpdatedEventArgs<ContractState> e)
         {
             if (e.State == ContractState.Pending)
             {

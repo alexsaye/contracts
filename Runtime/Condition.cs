@@ -132,7 +132,7 @@ namespace Contracts
             WatchedUpdated += HandleWatched;
         }
 
-        private void HandleWatched(object sender, WatchedEventArgs e)
+        private void HandleWatched(object sender, WatchedUpdatedEventArgs e)
         {
             if (e.Watched)
             {

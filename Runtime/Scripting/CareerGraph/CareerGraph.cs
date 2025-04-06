@@ -16,11 +16,7 @@ namespace Contracts.Scripting
             var progressionNode = new ProgressionNode();
 
             // Start.Hired -> Progression.Issued
-            var startEdge = new SimpleGraphEdge(
-                startNode,
-                progressionNode,
-                StartNodeView.OutputHiredPortName,
-                ProgressionNodeView.InputIssuedPortName);
+            var startEdge = new SimpleGraphEdge(startNode, "Hired", progressionNode, "Issue");
 
             return new SimpleGraphModel()
             {
@@ -54,7 +50,7 @@ namespace Contracts.Scripting
 
             // Create progressions from the nodes directly connected to the output edges of the start node.
             Debug.Log("Caching contract progression builders...");
-            var rootEdges = GetOutputEdges(startNode, StartNodeView.OutputHiredPortName);
+            var rootEdges = GetOutputEdges(startNode, "");
             startNode.NextOnHired = CacheContractBuilderProgressions(rootEdges);
 
             return startNode;
@@ -78,11 +74,11 @@ namespace Contracts.Scripting
             }
 
             Debug.Log("Caching next on fulfilled progression builders...");
-            var fulfilledEdges = GetOutputEdges(progressionNode, ProgressionNodeView.OutputFulfilledPortName);
+            var fulfilledEdges = GetOutputEdges(progressionNode, "Fulfilled");
             progressionNode.NextOnFulfilled = CacheContractBuilderProgressions(fulfilledEdges);
 
             Debug.Log("Caching next on rejected progression builders...");
-            var rejectedEdges = GetOutputEdges(progressionNode, ProgressionNodeView.OutputRejectedPortName);
+            var rejectedEdges = GetOutputEdges(progressionNode, "Rejected");
             progressionNode.NextOnRejected = CacheContractBuilderProgressions(rejectedEdges);
 
             return progressionNode;

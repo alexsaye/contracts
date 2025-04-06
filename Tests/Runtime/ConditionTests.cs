@@ -49,7 +49,7 @@ namespace Contracts.Tests
             var condition = subject.AsCondition();
 
             var satisfied = false;
-            void handleState(object sender, StateEventArgs<bool> e) => satisfied = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<bool> e) => satisfied = e.State;
 
             condition.StateUpdated += handleState;
             condition.StateUpdated -= handleState;

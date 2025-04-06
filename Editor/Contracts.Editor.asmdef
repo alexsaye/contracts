@@ -1,31 +1,11 @@
 {
     "name": "Contracts.Editor",
     "rootNamespace": "Contracts.Editor",
-    "references": [],
+    "references": [
+        "GUID:2a176252c20e609468827aa18dcc3de3"
+    ],
     "includePlatforms": [
-        "Android",
-        "Editor",
-        "EmbeddedLinux",
-        "iOS",
-        "LinuxStandalone64",
-        "CloudRendering",
-        "macOSStandalone",
-        "Switch",
-        "PS4",
-        "PS5",
-        "QNX",
-        "ReservedCFE",
-        "tvOS",
-        "WSA",
-        "VisionOS",
-        "WebGL",
-        "WindowsStandalone32",
-        "WindowsStandalone64",
-        "WindowsStandalone32Server",
-        "WindowsStandalone64Server",
-        "GameCoreXboxOne",
-        "XboxOne",
-        "GameCoreScarlett"
+        "Editor"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

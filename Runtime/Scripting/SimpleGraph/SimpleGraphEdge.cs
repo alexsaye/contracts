@@ -22,16 +22,16 @@ namespace SimpleGraph
         private string inputPortName;
         public string InputPortName => inputPortName;
 
-        public SimpleGraphEdge(SimpleGraphNode outputNode, SimpleGraphNode inputNode, string outputPortName, string inputPortName)
-            : this(outputNode.Guid, inputNode.Guid, outputPortName, inputPortName)
+        public SimpleGraphEdge(SimpleGraphNode outputNode, string outputPortName, SimpleGraphNode inputNode, string inputPortName)
+            : this(outputNode.Guid, outputPortName, inputNode.Guid, inputPortName)
         {
         }
 
-        public SimpleGraphEdge(string outputNodeGuid, string inputNodeGuid, string outputPortName, string inputPortName)
+        public SimpleGraphEdge(string outputNodeGuid, string outputPortName, string inputNodeGuid, string inputPortName)
         {
             this.outputNodeGuid = outputNodeGuid;
-            this.inputNodeGuid = inputNodeGuid;
             this.outputPortName = outputPortName;
+            this.inputNodeGuid = inputNodeGuid;
             this.inputPortName = inputPortName;
         }
     }

@@ -1,4 +1,4 @@
-using SimpleGraph;
+using Contracts.Scripting;
 using SimpleGraph.Editor;
 using System;
 using System.Collections.Generic;
@@ -8,18 +8,15 @@ using UnityEditor;
 using UnityEditor.Experimental.GraphView;
 using UnityEditor.UIElements;
 using UnityEngine;
-using UnityEngine.Events;
 using UnityEngine.UIElements;
 
-namespace Contracts.Scripting
+namespace Contracts.Editor.Scripting
 {
     [SimpleGraphNodeCapabilities(~Capabilities.Resizable)]
     [SimpleGraphNodeMenu(typeof(ContractGraph), "Condition")]
     [SimpleGraphNodeView(typeof(ConditionNode))]
     public class ConditionNodeView : SimpleGraphNodeView
     {
-        public const string OutputSatisfiedPortName = "Satisfied";
-
         private static readonly IReadOnlyDictionary<string, Type> selectableBuilders = AppDomain.CurrentDomain.GetAssemblies()
                 .SelectMany(assembly => assembly.GetTypes())
                 .Where(type => type != typeof(ConditionNode) && type != typeof(CompositeConditionNode))
@@ -51,7 +48,7 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add an output port for when the condition is satisfied.
-            outputSatisfiedPort = CreatePort<IConditionBuilder>(OutputSatisfiedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
+            outputSatisfiedPort = CreatePort<IConditionBuilder>("", Orientation.Horizontal, Direction.Output, Port.Capacity.Single);
             outputContainer.Add(outputSatisfiedPort);
 
             // Add a dropdown type field to select a condition builder type.

@@ -58,7 +58,7 @@ namespace Contracts
             WatchedUpdated += HandleWatched;
         }
 
-        private void HandleWatched(object sender, WatchedEventArgs e)
+        private void HandleWatched(object sender, WatchedUpdatedEventArgs e)
         {
             if (e.Watched)
             {
@@ -73,7 +73,7 @@ namespace Contracts
             }
         }
 
-        private void HandleFulfillingState(object sender, StateEventArgs<bool> e)
+        private void HandleFulfillingState(object sender, StateUpdatedEventArgs<bool> e)
         {
             if (e.State)
             {
@@ -89,7 +89,7 @@ namespace Contracts
             }
         }
 
-        private void HandleRejectingState(object sender, StateEventArgs<bool> e)
+        private void HandleRejectingState(object sender, StateUpdatedEventArgs<bool> e)
         {
             if (e.State)
             {

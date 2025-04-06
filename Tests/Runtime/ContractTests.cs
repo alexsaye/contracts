@@ -11,7 +11,7 @@ namespace Contracts.Tests
             Assert.AreEqual(ContractState.Fulfilled, fulfilledContract.State, "Is fulfilled on construction.");
 
             var state = ContractState.Pending;
-            void handleState(object sender, StateEventArgs<ContractState> e) => state = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<ContractState> e) => state = e.State;
 
             fulfilledContract.StateUpdated += handleState;
             Assert.AreEqual(ContractState.Fulfilled, state, "Is fulfilled on subscribe.");
@@ -24,7 +24,7 @@ namespace Contracts.Tests
             Assert.AreEqual(ContractState.Rejected, rejectedContract.State, "Is rejected on construction.");
 
             var state = ContractState.Pending;
-            void handleState(object sender, StateEventArgs<ContractState> e) => state = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<ContractState> e) => state = e.State;
 
             rejectedContract.StateUpdated += handleState;
             Assert.AreEqual(ContractState.Rejected, state, "Is rejected on subscribe.");
@@ -37,7 +37,7 @@ namespace Contracts.Tests
             Assert.AreEqual(ContractState.Rejected, schrodingersContract.State, "Is rejected on construction.");
 
             var state = ContractState.Pending;
-            void handleState(object sender, StateEventArgs<ContractState> e) => state = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<ContractState> e) => state = e.State;
 
             schrodingersContract.StateUpdated += handleState;
             Assert.AreEqual(ContractState.Rejected, state, "Is rejected on subscribe.");
@@ -52,7 +52,7 @@ namespace Contracts.Tests
             Assert.AreEqual(ContractState.Pending, contract.State, "Is pending on construction.");
 
             var state = ContractState.Fulfilled;
-            void handleState(object sender, StateEventArgs<ContractState> e) => state = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<ContractState> e) => state = e.State;
 
             contract.StateUpdated += handleState;
             Assert.AreEqual(ContractState.Pending, state, "Is pending on subscribe.");
@@ -74,7 +74,7 @@ namespace Contracts.Tests
             Assert.AreEqual(ContractState.Pending, contract.State, "Is pending on construction.");
 
             var state = ContractState.Pending;
-            void handleState(object sender, StateEventArgs<ContractState> e) => state = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<ContractState> e) => state = e.State;
 
             contract.StateUpdated += handleState;
             Assert.AreEqual(ContractState.Pending, state, "Is pending on subscribe.");
@@ -95,7 +95,7 @@ namespace Contracts.Tests
             Assert.AreEqual(ContractState.Pending, schrodingersContract.State, "Is pending on construction.");
 
             var state = ContractState.Pending;
-            void handleState(object sender, StateEventArgs<ContractState> e) => state = e.State;
+            void handleState(object sender, StateUpdatedEventArgs<ContractState> e) => state = e.State;
 
             schrodingersContract.StateUpdated += handleState;
             Assert.AreEqual(ContractState.Pending, state, "Is pending on subscribe.");

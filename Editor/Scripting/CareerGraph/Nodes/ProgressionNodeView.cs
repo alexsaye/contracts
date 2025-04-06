@@ -1,26 +1,17 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using UnityEditor.Experimental.GraphView;
-using UnityEditor.Search;
 using UnityEditor.UIElements;
-using SimpleGraph;
-using System.Collections.Generic;
-using System;
-using UnityEngine.Events;
-using System.Linq;
 using UnityEditor;
 using SimpleGraph.Editor;
+using Contracts.Scripting;
 
-namespace Contracts.Scripting
+namespace Contracts.Editor.Scripting
 {
     [SimpleGraphNodeMenu(typeof(CareerGraph), "Contract Progression")]
     [SimpleGraphNodeView(typeof(ProgressionNode))]
     public class ProgressionNodeView : SimpleGraphNodeView
     {
-        public const string InputIssuedPortName = "Issued";
-        public const string OutputFulfilledPortName = "Fulfilled";
-        public const string OutputRejectedPortName = "Rejected";
-
         private readonly Port inputIssuedPort;
         private readonly Port outputFulfillPort;
         private readonly Port outputRejectPort;
@@ -33,15 +24,15 @@ namespace Contracts.Scripting
             titleContainer.style.backgroundColor = new StyleColor(new Color(0.3f, 0.3f, 0.6f));
 
             // Add an input port for the previous progression node to issue this progression through.
-            inputIssuedPort = CreatePort<ContractGraph>(InputIssuedPortName, Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
+            inputIssuedPort = CreatePort<ContractGraph>("Issue", Orientation.Horizontal, Direction.Input, Port.Capacity.Single);
             inputContainer.Add(inputIssuedPort);
 
             // Add an output port for the next progression nodes when fulfilled.
-            outputFulfillPort = CreatePort<ContractGraph>(OutputFulfilledPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputFulfillPort = CreatePort<ContractGraph>("Fulfilled", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputFulfillPort);
 
             // Add an output port for the next progression nodes when rejected.
-            outputRejectPort = CreatePort<ContractGraph>(OutputRejectedPortName, Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
+            outputRejectPort = CreatePort<ContractGraph>("Rejected", Orientation.Horizontal, Direction.Output, Port.Capacity.Multi);
             outputContainer.Add(outputRejectPort);
 
             // Add a field to select a contract.

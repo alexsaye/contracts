@@ -1,6 +1,5 @@
 using SimpleGraph;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -16,11 +15,7 @@ namespace Contracts.Scripting
             var conditionNode = new ConditionNode() { Position = new Rect(-300f, 0f, 0f, 0f) };
 
             // Condition.Satisfied -> Contract.Fulfilled
-            var satisfiedEdge = new SimpleGraphEdge(
-                conditionNode,
-                contractNode,
-                ConditionNodeView.OutputSatisfiedPortName,
-                ContractNodeView.InputFulfilledPortName);
+            var satisfiedEdge = new SimpleGraphEdge(conditionNode, "Satisfied", contractNode, "Fulfil");
 
             return new SimpleGraphModel()
             {
@@ -54,14 +49,14 @@ namespace Contracts.Scripting
 
             // Find the optional fulfilling input edge and create a condition builder for its output node.
             Debug.Log("Caching fulfilling condition builder...");
-            var fulfillingEdge = GetInputEdges(contractNode, ContractNodeView.InputFulfilledPortName).FirstOrDefault();
+            var fulfillingEdge = GetInputEdges(contractNode, "Fulfil").FirstOrDefault();
             contractNode.Fulfilling = fulfillingEdge != null
                 ? CacheConditionBuilder(GetNodeProvidingOutput(fulfillingEdge))
                 : null;
 
             // Find the optional rejecting input edge and create a condition builder for its output node.
             Debug.Log("Caching rejecting condition builder...");
-            var rejectingEdge = GetInputEdges(contractNode, ContractNodeView.InputRejectedPortName).FirstOrDefault();
+            var rejectingEdge = GetInputEdges(contractNode, "Reject").FirstOrDefault();
             contractNode.Rejecting = rejectingEdge != null
                 ? CacheConditionBuilder(GetNodeProvidingOutput(rejectingEdge))
                 : null;
@@ -80,7 +75,7 @@ namespace Contracts.Scripting
 
             if (node is CompositeConditionNode compositeConditionNode)
             {
-                compositeConditionNode.Subconditions = GetInputEdges(compositeConditionNode, CompositeConditionNodeView.InputSubconditionsPortName)
+                compositeConditionNode.Subconditions = GetInputEdges(compositeConditionNode, "Subconditions")
                     .Select(edge => GetNodeProvidingOutput(edge))
                     .Select(subconditionNode => CacheConditionBuilder(subconditionNode))
                     .ToList();
